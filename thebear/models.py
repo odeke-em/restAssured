@@ -3,23 +3,24 @@
 
 from django.db import models
 
-import globalVariables as globVars
+# Local module
+import theBearConstants
 
 class PlayTime(models.Model):
   timeSinceEpoch = models.DecimalField(
-    max_digits=globVars.MAX_DIGITS, decimal_places=globVars.MAX_DECIMAL_PLACES,
-    unique = True
+    max_digits=theBearConstants.MAX_DIGITS, 
+    decimal_places=theBearConstants.MAX_DECIMAL_PLACES,unique = True
   )
 
   def __unicode__(self):
     return "%.4f"%(self.timeSinceEpoch)
 
 class Song(models.Model):
-  title = models.CharField(max_length = globVars.MAX_MISC_STR_LENGTH)
-  artist = models.CharField(max_length = globVars.MAX_MISC_STR_LENGTH)
-  url = models.URLField(max_length = globVars.MAX_MISC_STR_LENGTH)
+  title = models.CharField(max_length = theBearConstants.MAX_MISC_STR_LENGTH)
+  artist = models.CharField(max_length = theBearConstants.MAX_MISC_STR_LENGTH)
+  url = models.URLField(max_length = theBearConstants.MAX_MISC_STR_LENGTH)
   trackHash = models.CharField(
-    max_length = globVars.MAX_HASH_LENGTH, default=""
+    max_length = theBearConstants.MAX_HASH_LENGTH, default=""
   )
 
   def __unicode__(self):

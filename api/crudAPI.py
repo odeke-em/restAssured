@@ -11,7 +11,6 @@ from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.http import HttpResponse
 
-import models
 import httpStatusCodes
 import validatorFunctions as vFuncs
 import globalVariables as globVars
@@ -25,6 +24,8 @@ trivialSerialzdDict = {
   lambda e: e is None: lambda e:"null",
   lambda s: hasattr(s, globVars.NUMERICAL_DIV_ATTR): str
 }
+
+tableDefinitions = dict()
 
 # Attributes that are only modified by the server-side
 # system and not by entries from the client side
@@ -54,7 +55,7 @@ def isSerializable(pyObj):
   except: return False
   else: return True
 
-def getTablesInModels():
+def getTablesInModels(models):
   # Returns a dict mapping table names to their objects,
   # for every table defined in models.py
   tableNameToTypeDict = dict()
@@ -64,11 +65,11 @@ def getTablesInModels():
 
   return tableNameToTypeDict
 
-def getTableObjByKey(tableKeyName):
+def getTableObjByKey(tableKeyName, models=None):
   # Returns the table object given the tableKeyName(a string)
   # if it is exists in the DB, else None
   if not tableKeyName: return None
-  tablesInDB = getTablesInModels()
+  tablesInDB = getTablesInModels(models)
   return tablesInDB.get(tableKeyName, None)
 
 def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
@@ -104,11 +105,10 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
 def passBasedOffFunc(value, salvageConverters):
   if not salvageConverters: return False
   for quantifier, converter in salvageConverters.items():
-    if inspect.isfunction(quantifier):
-      if quantifier(value):
-         # Let's get the converted value and test for serializability
-         serialized = converter(value)
-         if isSerializable(serialized): return serialized
+    if inspect.isfunction(quantifier) and quantifier(value):
+      # Let's get the converted value and test for serializability
+      converted = converter(value)
+      if isSerializable(converted): return converted 
 
 def suffixStrip(key, suffix):
   if not (key and suffix): return None
@@ -118,8 +118,8 @@ def suffixStrip(key, suffix):
 
   return beforeSuffixSearch.groups(1)[0]
 
-def matchTable(tableKey):
-  allTables = getTablesInModels()
+def matchTable(tableKey, models):
+  allTables = getTablesInModels(models)
   for key in allTables:
     if re.search("^%s$"%(tableKey), key, re.IGNORECASE): 
       return allTables.get(key)
@@ -190,20 +190,19 @@ def getConnectedElems(pyObj):
     
   return setElemsDict 
 
-def getTableByKey(tableName):
+def getTableByKey(tableName, models):
   if not tableName: return None
-  tables = getTablesInModels()
+  tables = getTablesInModels(models)
   return tables.get(tableName, None)
 
-def updateTable(tableName, updatesBody, updateBool=False):
+def updateTable(tableObj, updatesBody, updateBool=False):
   # This is to handle the CREATE and UPDATE methods of CRUD
   # Args:
-  #  tableName => a string of the table to be updated
+  #  tableObj => ProtoType of the table to be updated
   #  updatesBody => A dict containing the fields to be changed in the table
   #  updateBool  => Set to False, means that you are creating an entry,
   #                 True, means an update 
   #  Note:  If updateBool is set, you MUST provide an 'id' in 'updatesBody'
-  tableObj = getTableByKey(tableName)
   if not (tableObj and updatesBody): 
     return dict() # Handle this mishap later
 
@@ -267,7 +266,7 @@ def updateTable(tableName, updatesBody, updateBool=False):
   else:
      return objectToChange.id, nChanges, nDuplicates
 
-def deleteById(objTypeName, targetID):
+def deleteById(objProtoType, targetID):
   # Given a table's name and the targetID, attempt a deletion 
   # Returns: DELETION_FAILURE_CODE on any parameter errors
   #          DELETION_EXCEPTION_CODE on deletion error/exception
@@ -275,12 +274,8 @@ def deleteById(objTypeName, targetID):
   #   *** The above codes are defined in the globVars file ***
 
   # Accepting only positive IDs
-  if not (objTypeName and vFuncs.isUnSignedInt(targetID)): 
-    return globVars.DELETION_FAILURE_CODE
-
-  objProtoType = getTableByKey(objTypeName)
-  if not objProtoType: 
-    print("Could not find the table %s"%(objTypeName))
+  if not (objProtoType and vFuncs.isUnSignedInt(targetID)): 
+    print("Unknown table ", objProtoType)
     return globVars.DELETION_FAILURE_CODE
   
   targetElem = objProtoType.objects.filter((globVars.ID_KEY, targetID))
@@ -322,27 +317,30 @@ def getDateInt():
   )
   return ymdHMS
 
-def handleHTTPRequest(request, tableName):
+def handleHTTPRequest(request, tableName, models):
   requestMethod = request.method
+
+  tableProtoType = getTableByKey(tableName, models)
 
   if requestMethod == globVars.GET_KEY:
     getBody = request.GET
-    return handleGET(getBody, tableName)
+    return handleGET(getBody, tableProtoType)
 
   elif requestMethod == globVars.POST_KEY:
     postBody = request.POST
-    return handlePOST(postBody, tableName)
+    return handlePOST(postBody, tableProtoType)
 
   elif requestMethod == globVars.DELETE_KEY:
-    return handleDELETE(request, tableName)
+    return handleDELETE(request, tableProtoType)
 
   elif requestMethod == globVars.PUT_KEY:
-    return handlePUT(request, tableName)
+    return handlePUT(request, tableProtoType)
+ 
+  else: 
+    errorResponse = HttpResponse("Unknown method") 
+    errorResponse.status_code = httpStatusCodes.METHOD_NOT_ALLOWED
   
-  errorResponse = HttpResponse("Unknown method") 
-  errorResponse.status_code = httpStatusCodes.METHOD_NOT_ALLOWED
-  
-  return errorResponse
+    return errorResponse
 
 def getAllowedFilters(tableProtoType):
   if not tableProtoType: return None
@@ -360,7 +358,7 @@ def copyDictTo(src, dest):
     dest[srcKey] = srcValue
 
 ######################### CRUD handlers below ########################
-def handlePUT(request, tableName):
+def handlePUT(request, tableProtoType):
   response = HttpResponse()
 
   try:
@@ -371,13 +369,10 @@ def handlePUT(request, tableName):
     print(e)
 
   else:
-    if not tableName:
-      print("A tableName is needed")
-      response.status_code = httpStatusCodes.BAD_REQUEST  
     
     data = putBody.get(globVars.DATA_KEY, None)
 
-    results = updateTable(tableName, updateBody=data, updateBool=True)
+    results = updateTable(tableProtoType, updateBody=data, updateBool=True)
 
     changedID, nChanges, nDuplicates = results
     resultsDict =dict(
@@ -388,16 +383,13 @@ def handlePUT(request, tableName):
 
   return response
 
-def handleGET(getBody, tableName):
+def handleGET(getBody, tableObj):
   response = HttpResponse()
-  tableObj = getTableByKey(tableName)
   if not tableObj:
-    if DEVELOPER_MODE: tableObj = getTableByKey("Song")
-    else:
-      response.status_code = 403
-      response.status_message = "Cannot find the table %s"%(tableName)
-      print("No results")
-      return response
+    response.status_code = 403
+    response.status_message = "I need a table prototype"
+    print("No results")
+    return response
 
   tableObjManager = tableObj.objects
   objCount = tableObjManager.count()
@@ -500,24 +492,28 @@ def handleGET(getBody, tableName):
 
   return response
 
-def handlePOST(postBody, tableName):
+def handlePOST(postBody, tableProtoType):
   response = HttpResponse()
 
   data = postBody.get(globVars.DATA_KEY, None)
-  targetID = postBody.get(globVars.ID_KEY, None)
-  results = updateTable(tableName, updatesBody=postBody, updateBool=False)
+  results = updateTable(
+    tableProtoType, updatesBody=postBody, updateBool=False
+  )
+
   resultsDict = dict()
 
   if results:
     changedID, nChanges, nDuplicates = results
     resultsDict =\
       dict(id=changedID, nChanges=nChanges, nDuplicates=nDuplicates)
+  else:
+    response.status_code = httpStatusCodes.BAD_REQUEST  
 
   response.write(json.dumps(resultsDict))
 
   return response
 
-def handleDELETE(request, tableName):
+def handleDELETE(request, tableProtoType):
   response = HttpResponse()
   try:
     body = request.read()
@@ -525,13 +521,9 @@ def handleDELETE(request, tableName):
   except Exception, e:
     print(e)
   else:
-    if not tableName:
-      print("A tableName is needed")
-      response.status_code = httpStatusCodes.BAD_REQUEST  
-
     targetID = deleteBody.get(globVars.ID_KEY, None)
-    resultStatus = deleteById(tableName, targetID)
-    resultsDict = dict(resultStatus=resultStatus)
+    resultStatus = deleteById(tableProtoType, targetID)
+    resultsDict = dict(resultStatus=resultStatus, id=targetID)
 
     response.write(json.dumps(resultsDict))
 
