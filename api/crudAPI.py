@@ -129,7 +129,7 @@ def getForeignKeys(queryTable):
     lambda attr:attr.endswith(globVars.ID_SUFFIX), queryTable.__dict__
   )
 
-def getForeignKeyElems(pyObj, callerTable=None):
+def getForeignKeyElems(pyObj, callerTable=None, models=None):
   if not pyObj: return None
   elif callerTable is pyObj: return None
 
@@ -142,7 +142,7 @@ def getForeignKeyElems(pyObj, callerTable=None):
     if not foreignId: continue # Corrupted data detected
 
     tableName = suffixStrip(foreignKey, globVars.ID_SUFFIX)
-    tablePrototype = matchTable(tableName)
+    tablePrototype = matchTable(tableName, models=None)
     if not tablePrototype: continue
 
     connObjs = tablePrototype.objects.filter((globVars.ID_KEY, foreignId))
@@ -159,7 +159,7 @@ def getForeignKeyElems(pyObj, callerTable=None):
 
   return dataDict
 
-def getConnectedElems(pyObj):
+def getConnectedElems(pyObj, models):
   # Return all table instances in which the current 'pyObj' is a foreign
   # key. These can normally be accessed by the table names in 
   #  lower_case <with> _set suffixed, eg pyObj.comment_set
@@ -178,8 +178,8 @@ def getConnectedElems(pyObj):
       serializDict = getSerializableElems(connElem)
       if not serializDict: continue
 
-      connConnElems = getForeignKeyElems(connElem, pyObj) 
-      refObjs = getConnectedElems(connElem)
+      connConnElems = getForeignKeyElems(connElem, pyObj, models) 
+      refObjs = getConnectedElems(connElem, models)
 
       copyDictTo(connConnElems, serializDict)
       copyDictTo(refObjs, serializDict)
@@ -324,7 +324,7 @@ def handleHTTPRequest(request, tableName, models):
 
   if requestMethod == globVars.GET_KEY:
     getBody = request.GET
-    return handleGET(getBody, tableProtoType)
+    return handleGET(getBody, tableProtoType, models)
 
   elif requestMethod == globVars.POST_KEY:
     postBody = request.POST
@@ -383,7 +383,7 @@ def handlePUT(request, tableProtoType):
 
   return response
 
-def handleGET(getBody, tableObj):
+def handleGET(getBody, tableObj, models=None):
   response = HttpResponse()
   if not tableObj:
     response.status_code = 403
@@ -473,11 +473,11 @@ def handleGET(getBody, tableObj):
 
   for dbObj in dbObjIterator:
     dbElemDict = getSerializableElems(dbObj)
-    foreignKeyElems = getForeignKeyElems(dbObj)
+    foreignKeyElems = getForeignKeyElems(dbObj, models=models)
     if foreignKeyElems:  copyDictTo(foreignKeyElems, dbElemDict)
     
     if connectedObjsBool: 
-      connElems = getConnectedElems(dbObj)
+      connElems = getConnectedElems(dbObj, models)
       if connElems: copyDictTo(connElems, dbElemDict)
 
     data.append(dbElemDict)
