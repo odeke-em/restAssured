@@ -241,11 +241,19 @@ API Usage:
       you can achieve the same by:
 
 	via your javaScript console:
-
-	  $.ajax({url:"http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r", method:"GET"});
+	GET:
+	  $.ajax({
+	    url:"http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r", 
+	    method:"GET"
+	  });
+	POST:
+	  $.ajax({
+	    url:'http://192.168.1.64:8000/thebear/songHandler', method:'POST',
+	    data:"url=http://www.youtube.com/watch?v=wW3jyZRDlII&title=River below&artist=Billy Talent&trackHash=v=wW3jyZRDlII"
+	  }); 
 
 	python:
-
+	GET:
 	  import urllib.request
 
 	  dataIn = urllib.request.urlopen("http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r")
