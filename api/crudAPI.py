@@ -208,6 +208,9 @@ def updateTable(tableObj, updatesBody, updateBool=False):
 
   errorID = -1 
   nChanges = nDuplicates = 0
+  if not isinstance(updatesBody, dict):
+    print("Arg 2 must be a dictionary")
+    return elemID, newChanges, nDuplicates
 
   if updateBool:
     idToChange = updatesBody.get(globVars.ID_KEY)
@@ -224,29 +227,27 @@ def updateTable(tableObj, updatesBody, updateBool=False):
   else:
     objectToChange = tableObj()
 
-  mutableAttrKeys = filter(
-    lambda attr: not (attr.startswith("_") or attr in onlyServerCanWrite), 
-    updatesBody
-  )
+  isImmutableAttr = lambda s : s.startswith('_') or s in onlyServerCanWrite
+
   allowedKeys = getAllowedFilters(objectToChange)
-  mutableAttrKeys = list()
-  for attr in updatesBody:
-    # Don't touch such immutable variables
-    if attr.startswith("_") or attr in onlyServerCanWrite:
-      continue
 
-    if attr in allowedKeys: # Good to go
-      attr = str(attr)
+  #The rest can be modified
+  mutableAttrs = filter(
+    lambda attr: attr in allowedKeys and not isImmutableAttr(attr), \
+                        updatesBody)
 
-      attrValue = updatesBody.get(attr)
-      if updateBool: 
-         origValue = objectToChange.__getattribute__(attr)
-         if (attrValue == origValue): 
-            nDuplicates += 1
-            continue
+  for attr in mutableAttrs:
+    attr = str(attr)
 
-      objectToChange.__setattr__(attr, attrValue)
-      nChanges += 1
+    attrValue = updatesBody.get(attr)
+    if updateBool: 
+       origValue = objectToChange.__getattribute__(attr)
+       if (attrValue == origValue): 
+          nDuplicates += 1
+          continue
+
+    objectToChange.__setattr__(attr, attrValue)
+    nChanges += 1
 
   if not nChanges: 
     return objectToChange.id, nChanges, nDuplicates
@@ -261,6 +262,7 @@ def updateTable(tableObj, updatesBody, updateBool=False):
 
   # Let's get that data written to memory
   savedBoolean = saveToMemory(objectToChange)
+
   if not savedBoolean:
      return errorID, -1, -1
   else:
