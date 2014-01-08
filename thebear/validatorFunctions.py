@@ -6,8 +6,12 @@
 
 import re
 
-intRegCompile = re.compile("^(\d+)$", re.UNICODE)
+intRegCompile = re.compile("^(-?\d+)$", re.UNICODE)
+unsignedIntRegCompile = re.compile("^(\d+)$", re.UNICODE)
 floatRegCompile = re.compile("^(\d+)?.(\d+)$", re.UNICODE)
 
-isInt = lambda s: \
-  isinstance(isInt, int) or (intRegCompile.match(str(s)) != None)
+isUnSignedInt = lambda u:\
+  (isinstance(u, int) and u >= 0)  or (unsignedIntRegCompile.match(str(u)) != None)
+
+isInt = lambda i: \
+  isinstance(i, int) or (intRegCompile.match(str(i)) != None)

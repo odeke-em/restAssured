@@ -13,7 +13,7 @@ from django.http import HttpResponse
 
 import models
 import httpStatusCodes
-import validatorFunctions as vFs
+import validatorFunctions as vFuncs
 import globalVariables as globVars
 
 # Set to False during deployment
@@ -212,7 +212,8 @@ def updateTable(tableName, updatesBody, updateBool=False):
 
   if updateBool:
     idToChange = updatesBody.get(globVars.ID_KEY)
-    if not (idToChange and vFs.isInt(idToChange)):
+    # Only positive IDs
+    if not (idToChange and vFuncs.isUnSignedInt(idToChange)):
       print({"error":"Expecting an id to update"})
       return errorID, nChanges, nDuplicates
 
@@ -272,7 +273,9 @@ def deleteById(objTypeName, targetID):
   #          DELETION_EXCEPTION_CODE on deletion error/exception
   #          DELETION_SUCCESS_CODE on successful deletion
   #   *** The above codes are defined in the globVars file ***
-  if not (objTypeName and vFs.isInt(targetID)): 
+
+  # Accepting only positive IDs
+  if not (objTypeName and vFuncs.isUnSignedInt(targetID)): 
     return globVars.DELETION_FAILURE_CODE
 
   objProtoType = getTableByKey(objTypeName)
@@ -419,7 +422,33 @@ def handleGET(getBody, tableName):
     else:
       dbObjs = copyObjs
       nFiltrations += 1
+
+  if not nFiltrations: # Only invalid filters were passed in
+     dbObjs = tableObjManager.all()
   #======================================================================#
+ 
+  #===================== Pagination and OffSets here ====================#
+  limit = getBody.get(globVars.LIMIT_KEY, None)
+  if not limit: 
+    limit=0
+
+  # Only postive limits accepted
+  elif not vFuncs.isUnSignedInt(limit):
+    limit = globVars.THRESHOLD_LIMIT
+  else:  
+    limit = int(limit)
+  
+  offSet = getBody.get(globVars.OFFSET_KEY, None)
+
+  # Only accept positive offsets
+  if not (offSet and vFuncs.isUnSignedInt(offSet)):
+    offSet = globVars.THRESHOLD_OFFSET
+  else:
+    offSet = int(offSet)
+ 
+  maxSize = dbObjs.count()
+  if limit > maxSize: limit = maxSize 
+  elif limit: limit += offSet
 
   #========================== SORTING HERE ==============================#
   sortKey = getBody.get(globVars.SORT_KEY, None)
@@ -431,6 +460,7 @@ def handleGET(getBody, tableName):
      sortKey = "-%s"%(sortKey)
   
   dbObjs = dbObjs.order_by(str(sortKey))
+
   #======================================================================#
 
   #========================= FORMAT HERE ================================#
@@ -444,7 +474,12 @@ def handleGET(getBody, tableName):
 
   data = list()
 
-  for dbObj in dbObjs:
+  if not limit:
+    dbObjIterator = dbObjs.order_by(sortKey)[offSet:]
+  else:
+    dbObjIterator = dbObjs.order_by(sortKey)[offSet:limit]
+
+  for dbObj in dbObjIterator:
     dbElemDict = getSerializableElems(dbObj)
     foreignKeyElems = getForeignKeyElems(dbObj)
     if foreignKeyElems:  copyDictTo(foreignKeyElems, dbElemDict)
@@ -455,7 +490,10 @@ def handleGET(getBody, tableName):
 
     data.append(dbElemDict)
 
-  metaDict = dict(count=objCount, format=formatKey,sort=sortKey)
+  metaDict = dict(
+    count=objCount, format=formatKey,sort=sortKey, limit=limit, offset=offSet
+  )
+
   responseDict = dict(meta=metaDict, data=data)
 
   response.write(json.dumps(responseDict))

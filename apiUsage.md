@@ -122,7 +122,7 @@ API Usage:
 
 	    http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r
 
-	'count' => The number of retrieved elements.
+	'count' => The number of elements present in the DB.
 
 	'format' => Options are 'short' or 'long'
 
