@@ -8,12 +8,17 @@ RestAssured v0.0.1
 
   functionality for your project.
 
+  The main API is in a sub-directory of restAssured the main directory: 
+
+    ie restAssured/api
+
   A demo project is set up under 'thebear' that will extend the scrapper
   
   and tracker that I built to get top played tracks and rank them, hence
 
-  providing an API that other developers can use.
-
+  providing an app that other developers can extend for use with the web,
+  
+  mobile etc.
 
 
 API Usage:
@@ -36,7 +41,17 @@ API Usage:
      for instructions on installation. 
       
 
-  To fire up the project:
+  To build your own app:
+
+    + Go to main directory 'restAssured', run:
+
+      'django-admin.py startapp <Your_Project>'
+
+      And then modify <Your_Project>/views.py to get the functionality
+
+      of the API I have provided.
+
+  Otherwise, to fire up the app I have started 'thebear':
 
     + Go to main directory 'restAssured', you will find a file 'manage.py'
     
