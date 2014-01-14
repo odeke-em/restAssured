@@ -251,9 +251,25 @@ API Usage:
 	    url:'http://192.168.1.64:8000/thebear/songHandler', method:'POST',
 	    data:"url=http://www.youtube.com/watch?v=wW3jyZRDlII&title=River below&artist=Billy Talent&trackHash=v=wW3jyZRDlII"
 	  }); 
+        PUT:
+          $.ajax({
+            url:'http://192.168.1.64:8000/thebear/songHandler', method:'PUT',
+            data:"url=http://gutenNacht.com&id=1"
+          });
+        DELETE:
+          $.ajax({
+            url:'http://192.168.1.64:8000/thebear/songHandler', method:'PUT',
+            data:"id=2"
+          });
 
 	python:
 	GET:
 	  import urllib.request
 
-	  dataIn = urllib.request.urlopen("http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r")
+	  getUse = urllib.request.urlopen("http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r")
+	  deleteUse = urllib.request.urlopen(
+            "http://192.168.1.23.8008/thebear/songHandler/", data=bytes({"method":"DELETE","id":"7"})
+          )
+	  putUse = urllib.request.urlopen(
+            "http://192.168.1.23.8008/thebear/songHandler/", data=bytes({"id":"7", "method":"PUT"})
+          )

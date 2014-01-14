@@ -8,7 +8,7 @@ import theBearConstants
 
 class PlayTime(models.Model):
   timeSinceEpoch = models.DecimalField(
-    max_digits=theBearConstants.MAX_DIGITS, 
+    max_digits = theBearConstants.MAX_TIME_DIGITS,
     decimal_places=theBearConstants.MAX_DECIMAL_PLACES,unique = True
   )
 
@@ -29,6 +29,10 @@ class Song(models.Model):
 class SongEntry(models.Model):
   song = models.ForeignKey(Song)
   playTime = models.ForeignKey(PlayTime)
+  lastTimeEdit = models.DecimalField(
+    max_digits=theBearConstants.MAX_TIME_DIGITS,
+    decimal_places=theBearConstants.MAX_DECIMAL_PLACES
+  )
 
   def __unicode__(self):
     return "[%s:%s]"%(self.song, self.playTime)
