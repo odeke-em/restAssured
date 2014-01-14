@@ -6,10 +6,12 @@
 
 import re
 import json
+import time
 import inspect
+from django.http import HttpResponse
 from django.template import RequestContext
 from django.shortcuts import render_to_response
-from django.http import HttpResponse
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 
 import httpStatusCodes
 import validatorFunctions as vFuncs
@@ -254,10 +256,10 @@ def updateTable(tableObj, updatesBody, updateBool=False):
 
   if updateBool:
     if hasattr(objectToChange, globVars.LAST_TIME_EDIT_KEY):
-      objectToChange.__setattr__(globVars.LAST_TIME_EDIT_KEY, getDateInt())
+      objectToChange.__setattr__(globVars.LAST_TIME_EDIT_KEY, getCurrentTime())
   else:
     if hasattr(objectToChange, globVars.SUBMISSION_DATE_KEY):
-      objectToChange.__setattr__(globVars.SUBMISSION_DATE_KEY, getDateInt())
+      objectToChange.__setattr__(globVars.SUBMISSION_DATE_KEY, getCurrentTime())
     
 
   # Let's get that data written to memory
@@ -311,16 +313,9 @@ def saveToMemory(newObj):
   finally:
     return savBool
 
-def getDateInt():
-  import datetime as dt
-  now = dt.datetime.now()
-  ymdHMS = "{y:0>4}{m:0>2}{d:0>2}{H:0>2}{M:0>2}{S:0>2}".format(
-    y=now.year, m=now.month, d=now.day, H=now.hour, M=now.minute, S=now.second
-  )
-  return ymdHMS
-
 def handleHTTPRequest(request, tableName, models):
   requestMethod = request.method
+  print(request.method)
 
   tableProtoType = getTableByKey(tableName, models)
 
@@ -338,7 +333,7 @@ def handleHTTPRequest(request, tableName, models):
   elif requestMethod == globVars.PUT_KEY:
     return handlePUT(request, tableProtoType)
  
-  else: 
+  else:
     errorResponse = HttpResponse("Unknown method") 
     errorResponse.status_code = httpStatusCodes.METHOD_NOT_ALLOWED
   
@@ -358,6 +353,16 @@ def copyDictTo(src, dest):
 
   for srcKey, srcValue in src.items():
     dest[srcKey] = srcValue
+
+def padJSONInfo(outDict):
+  if isinstance(outDict, dict):
+    outDict["dataType"] = "json"
+    outDict["mimeType"] = "application/json"
+
+    outDict["currentTime"] = getCurrentTime()
+
+def getCurrentTime():
+  return time.time()
 
 ######################### CRUD handlers below ########################
 def handlePUT(request, tableProtoType):
@@ -490,6 +495,7 @@ def handleGET(getBody, tableObj, models=None):
 
   responseDict = dict(meta=metaDict, data=data)
 
+  padJSONInfo(responseDict)
   response.write(json.dumps(responseDict))
 
   return response
