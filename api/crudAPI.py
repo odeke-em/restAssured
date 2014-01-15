@@ -254,12 +254,12 @@ def updateTable(tableObj, updatesBody, updateBool=False):
   if not nChanges: 
     return objectToChange.id, nChanges, nDuplicates
 
-  if updateBool:
-    if hasattr(objectToChange, globVars.LAST_TIME_EDIT_KEY):
-      objectToChange.__setattr__(globVars.LAST_TIME_EDIT_KEY, getCurrentTime())
-  else:
-    if hasattr(objectToChange, globVars.SUBMISSION_DATE_KEY):
-      objectToChange.__setattr__(globVars.SUBMISSION_DATE_KEY, getCurrentTime())
+  # if updateBool:
+  if hasattr(objectToChange, globVars.LAST_TIME_EDIT_KEY):
+    objectToChange.__setattr__(globVars.LAST_TIME_EDIT_KEY, getCurrentTime())
+  # else:
+  if hasattr(objectToChange, globVars.SUBMISSION_DATE_KEY):
+    objectToChange.__setattr__(globVars.SUBMISSION_DATE_KEY, getCurrentTime())
     
 
   # Let's get that data written to memory
@@ -315,7 +315,6 @@ def saveToMemory(newObj):
 
 def handleHTTPRequest(request, tableName, models):
   requestMethod = request.method
-  print(request.method)
 
   tableProtoType = getTableByKey(tableName, models)
 
@@ -354,7 +353,7 @@ def copyDictTo(src, dest):
   for srcKey, srcValue in src.items():
     dest[srcKey] = srcValue
 
-def padJSONInfo(outDict):
+def addTypeInfo(outDict):
   if isinstance(outDict, dict):
     outDict["dataType"] = "json"
     outDict["mimeType"] = "application/json"
@@ -495,7 +494,7 @@ def handleGET(getBody, tableObj, models=None):
 
   responseDict = dict(meta=metaDict, data=data)
 
-  padJSONInfo(responseDict)
+  addTypeInfo(responseDict)
   response.write(json.dumps(responseDict))
 
   return response
@@ -517,6 +516,7 @@ def handlePOST(postBody, tableProtoType):
   else:
     response.status_code = httpStatusCodes.BAD_REQUEST  
 
+  addTypeInfo(resultsDict)
   response.write(json.dumps(resultsDict))
 
   return response
@@ -533,6 +533,7 @@ def handleDELETE(request, tableProtoType):
     resultStatus = deleteById(tableProtoType, targetID)
     resultsDict = dict(resultStatus=resultStatus, id=targetID)
 
+    addTypeInfo(resultsDict)
     response.write(json.dumps(resultsDict))
 
   return response
