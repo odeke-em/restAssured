@@ -217,7 +217,7 @@ def updateTable(tableObj, updatesBody, updateBool=False):
   if updateBool:
     idToChange = updatesBody.get(globVars.ID_KEY)
     # Only positive IDs
-    if not (idToChange and vFuncs.isUnSignedInt(idToChange)):
+    if not (idToChange and vFuncs.isUIntLike(idToChange)):
       print({"error":"Expecting an id to update"})
       return errorID, nChanges, nDuplicates
 
@@ -278,8 +278,11 @@ def deleteById(objProtoType, targetID):
   #   *** The above codes are defined in the globVars file ***
 
   # Accepting only positive IDs
-  if not (objProtoType and vFuncs.isUnSignedInt(targetID)): 
+  if not (objProtoType):
     print("Unknown table ", objProtoType)
+    return globVars.DELETION_FAILURE_CODE
+  elif  not vFuncs.isUIntLike(targetID): 
+    print('A positive ID is needed')
     return globVars.DELETION_FAILURE_CODE
   
   targetElem = objProtoType.objects.filter((globVars.ID_KEY, targetID))
@@ -405,13 +408,13 @@ def handleGET(getBody, tableObj, models=None):
   bodyAttrs = getAllowedFilters(objProto)
   queriedFilters = getBody.keys()
 
-  allowedFilters = filter(lambda attr:attr in bodyAttrs, queriedFilters)
   dbObjs = tableObjManager
   nFiltrations = 0
 
+  allowedFilters = filter(lambda attr:attr in bodyAttrs, queriedFilters)
   for allowedFilter in allowedFilters:
-    filterValue = getBody.get(allowedFilter)
-    if not filterValue: continue
+    filterValue = getBody.get(allowedFilter, None)
+    if filterValue is None: continue
     copyObjs = dbObjs
     try:
       copyObjs = copyObjs.filter((allowedFilter, filterValue))
@@ -427,11 +430,11 @@ def handleGET(getBody, tableObj, models=None):
  
   #===================== Pagination and OffSets here ====================#
   limit = getBody.get(globVars.LIMIT_KEY, None)
-  if not limit: 
-    limit=0
 
-  # Only postive limits accepted
-  elif not vFuncs.isUnSignedInt(limit):
+  if limit is None: 
+    limit=0
+    # Only postive limits accepted
+  elif not vFuncs.isUIntLike(limit):
     limit = globVars.THRESHOLD_LIMIT
   else:  
     limit = int(limit)
@@ -439,7 +442,7 @@ def handleGET(getBody, tableObj, models=None):
   offSet = getBody.get(globVars.OFFSET_KEY, None)
 
   # Only accept positive offsets
-  if not (offSet and vFuncs.isUnSignedInt(offSet)):
+  if not (offSet and vFuncs.isUIntLike(offSet)):
     offSet = globVars.THRESHOLD_OFFSET
   else:
     offSet = int(offSet)
