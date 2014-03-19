@@ -100,8 +100,6 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
     key, value = elem[0], elem[1]
     objDict[key] = value
 
-  print(pyObj.__dict__)
-  print('salvagable', salvagableElems)
   objDict[globVars.ID_KEY] = pyObj.__getattribute__(globVars.ID_KEY)
 
   return objDict

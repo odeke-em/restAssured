@@ -10,7 +10,7 @@ PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir))
 TEMPLATE_DIR = os.path.join(PROJECT_DIR, "template")
 
 # Path to database
-DATABASE_PATH = os.path.join(PROJECT_DIR, "thebear.db")
+DATABASE_PATH = os.path.join(PROJECT_DIR, "restAssured.db")
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -92,7 +92,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = ''
+SECRET_KEY = 'shoulentereDoenstnelmakesense'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -132,6 +132,7 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
     'thebear',
+    'gcs',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 )

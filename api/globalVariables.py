@@ -12,8 +12,8 @@ DELETE_KEY = "DELETE"
 #Element attribute keys
 ID_KEY = "id"
 STATUS_KEY = "status"
-LAST_TIME_EDIT_KEY = "lastTimeEdit"
-SUBMISSION_DATE_KEY = "submissionDate"
+LAST_EDIT_TIME_KEY = "lastEditTime"
+DATE_CREATED_KEY = "dateCreated"
 
 DATA_KEY = "data"
 TARGET_TABLE_KEY = "targetTable"

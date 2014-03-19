@@ -5,7 +5,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^thebear/*', include('thebear.urls')),
-    url(r'^$|^[\/]*$', 'thebear.views.index'),
+    url(r'^gcs/*', include('gcs.urls')),
     url(r'^admin/', include(admin.site.urls)),
 
     # Uncomment the admin/doc line below to enable admin documentation:
