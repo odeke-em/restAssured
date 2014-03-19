@@ -32,7 +32,7 @@ tableDefinitions = dict()
 # Attributes that are only modified by the server-side
 # system and not by entries from the client side
 onlyServerCanWrite = [
-  globVars.ID_KEY, globVars.SUBMISSION_DATE_KEY, globVars.LAST_TIME_EDIT_KEY
+  globVars.ID_KEY, globVars.DATE_CREATED_KEY, globVars.LAST_EDIT_TIME_KEY
 ]
 
 def translateSortKey(sortKey):
@@ -100,6 +100,8 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
     key, value = elem[0], elem[1]
     objDict[key] = value
 
+  print(pyObj.__dict__)
+  print('salvagable', salvagableElems)
   objDict[globVars.ID_KEY] = pyObj.__getattribute__(globVars.ID_KEY)
 
   return objDict
@@ -253,14 +255,6 @@ def updateTable(tableObj, updatesBody, updateBool=False):
 
   if not nChanges: 
     return objectToChange.id, nChanges, nDuplicates
-
-  # if updateBool:
-  if hasattr(objectToChange, globVars.LAST_TIME_EDIT_KEY):
-    objectToChange.__setattr__(globVars.LAST_TIME_EDIT_KEY, getCurrentTime())
-  # else:
-  if hasattr(objectToChange, globVars.SUBMISSION_DATE_KEY):
-    objectToChange.__setattr__(globVars.SUBMISSION_DATE_KEY, getCurrentTime())
-    
 
   # Let's get that data written to memory
   savedBoolean = saveToMemory(objectToChange)

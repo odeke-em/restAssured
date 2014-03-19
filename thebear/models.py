@@ -22,6 +22,8 @@ class Song(models.Model):
   trackHash = models.CharField(
     max_length = theBearConstants.MAX_HASH_LENGTH, default=""
   )
+  dateCreated = models.DateField(auto_now_add=True) # Auto-set by DB
+  lastEditTime = models.DateField(auto_now=True) # Automatically changed by DB
 
   def __unicode__(self):
     return "Song::{t}".format(t=self.title)
@@ -29,10 +31,8 @@ class Song(models.Model):
 class SongEntry(models.Model):
   song = models.ForeignKey(Song)
   playTime = models.ForeignKey(PlayTime)
-  lastTimeEdit = models.DecimalField(
-    max_digits=theBearConstants.MAX_TIME_DIGITS,
-    decimal_places=theBearConstants.MAX_DECIMAL_PLACES
-  )
+  dateCreated = models.DateField(auto_now_add=True)
+  lastEditTime = models.DateField(auto_now=True)
 
   def __unicode__(self):
     return "[%s:%s]"%(self.song, self.playTime)
