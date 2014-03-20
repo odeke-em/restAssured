@@ -89,16 +89,13 @@ API Usage:
       ------------------------------------------
       | Song              |   songHandler      |
       ------------------------------------------
-      | PlayTime	  |   playTimeHandler  |
-      ------------------------------------------
-      | SongEntry         |   entryHandler     |
-      ------------------------------------------
 
       So to access table 'Song'
 
       Visit:
-	http://192.168.1.23:8008/thebear/songHandler
-      This should return you a JSON object like so:
+
+	        http://192.168.1.23:8008/thebear/songHandler
+      This should return you a JSON object like so: * Columns may vary
       '{
 	  "meta": {
 	    "sort": "-id", "count": 4, "format": "short"
@@ -145,11 +142,11 @@ API Usage:
 
 	  For example:
 
-	    http://192.168.1.23.8008/thebear/songHandler/?sort=artist
+	    http://192.168.1.23.8008/thebear/songHandler/?sort=id
 
 	  Sorting in reverse order:
 
-	    http://192.168.1.23.8008/thebear/songHandler/?sort=artist_r
+	    http://192.168.1.23.8008/thebear/songHandler/?sort=id_r
 
 	'count' => The number of elements present in the DB.
 
@@ -160,81 +157,59 @@ API Usage:
 	  eg: Repeating the query but with the format set to 'long' yields a JSON like so:
 
 	  '{
-	    "meta": {
-		"sort": "artist", "count": 4, "format": "long"
-	    }, 
-	    "data": [
-		{
-		  "trackHash": "RDnLCqSMDEQsA", 
-		  "songentry_set": [
-		      {
-			"playTime_id": "3", 
-			"playTime": {
-			   "timeSinceEpoch": "1348574.88", "id": 3
-			}, 
-			"song_id": "4", "id": 8
-		      }
-		  ], 
-		  "artist": "Almonds", "url": "https://www.youtube.com/watch?v=EmZvOhHF85I&list=RDnLCqSMDEQsA", 
-		  "title": "Beez in the trap", "id": 4
-		}, 
-		{
-		  "trackHash": "bek1y2uiQGA", 
-		  "songentry_set": [
-		    {
-		      "playTime_id": "1", 
-		      "playTime": {
-			"timeSinceEpoch": "13808737.82", "id": 1
-		      }, 
-		      "song_id": "2", "id": 5
-		    }, 
-		    {
-		      "playTime_id": "2",
-		      "playTime": {
-			"timeSinceEpoch": "13808738.92", "id": 2
-		      }, 
-		      "song_id": "2", "id": 6
-		    }
-		  ], 
-		  "artist": "Avicii vs Nicki Romero", "url": "https://www.youtube.com/watch?v=bek1y2uiQGA", 
-		  "title": "I could be the one", "id": 2
-		}, 
-		{
-		  "trackHash": "YgGLl8CanQo", 
-		  "songentry_set": [
-		    {
-		      "playTime_id": "1", "playTime": {
-			  "timeSinceEpoch": "13808737.82", "id": 1
-		      }, 
-		      "song_id": "1", "id": 2
-		    }, 
-		    {
-		      "playTime_id": "1", 
-		      "playTime": {
-			"timeSinceEpoch": "13808737.82", "id": 1
-		      }, 
-		      "song_id": "1", "id": 3
-		    }
-		  ], 
-		  "artist": "Dr. Dre", "url": "https://www.youtube.com/watch?v=YgGLl8CanQo", "title": "Still Dre", "id": 1
-		}, 
-		{
-		  "trackHash": "v=ep0hay4Qw54", 
-		  "songentry_set": [
-		    {
-		      "playTime_id": "3", 
-		      "playTime": {
-			"timeSinceEpoch": "1348574.88", "id": 3
-		      }, 
-		      "song_id": "3", "id": 7
-		    }
-		  ], 
-		  "artist": "Kendrick Lamar", "url": "http://www.youtube.com/watch?v=ep0hay4Qw54", "title": "HiiiPower", "id": 3
-		}
-	    ]
-	  }'
-
-	 *** Please note for starters, the field timeSinceEpoch was entered through the admin site manually for tests ***
+            dataType: "json",
+            mimeType: "application/json",
+            meta: {
+                sort: "id",
+                count: 4,
+                offset: 0,
+                limit: 4,
+                format: "long"
+            },
+            data: [
+                {
+                    trackHash: "6U7rdWY06C4",
+                    artist: "Stromae",
+                    url: "https://www.youtube.com/watch?v=6U7rdWY06C4",
+                    title: "Alors On Danse",
+                    dateCreated: "Thu Mar 20 06:37:59 2014",
+                    playTime: "1395292019.49584",
+                    lastEditTime: "Thu Mar 20 06:37:59 2014",
+                    id: 1
+                },
+                {
+                    trackHash: "WEkuqv1V4n4",
+                    artist: "OutKast",
+                    url: "https://www.youtube.com/watch?v=WEkuqv1V4n4",
+                    title: "Sorry Miss Jackson",
+                    dateCreated: "Thu Mar 20 07:07:33 2014",
+                    playTime: "1395292045.49584",
+                    lastEditTime: "Thu Mar 20 07:07:33 2014",
+                    id: 2
+                },
+                {
+                    trackHash: "f8zR30qTd8Y1",
+                    artist: "Billy Talent",
+                    url: "https://www.youtube.com/watch?v=f8zR30qTd8Y",
+                    title: "River below",
+                    dateCreated: "Thu Mar 20 07:08:55 2014",
+                    playTime: "1395299310.74394",
+                    lastEditTime: "Thu Mar 20 07:08:55 2014",
+                    id: 3
+                },
+                {
+                    trackHash: "SlvLUcaRdGI",
+                    artist: "Cash Out",
+                    url: "https://www.youtube.com/watch?v=SlvLUcaRdGI",
+                    title: "Cashin Out",
+                    dateCreated: "Thu Mar 20 07:22:16 2014",
+                    playTime: "1395299310.74394",
+                    lastEditTime: "Thu Mar 20 07:22:16 2014",
+                    id: 4
+                },
+            ],
+            currentTime: 1395299339.137992
+	    }'
 
     For those of you script junkies:
 
