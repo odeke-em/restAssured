@@ -23,15 +23,3 @@ def songHandler(request):
   return crudAPI.handleHTTPRequest(
     request, theBearConstants.SONG_TABLE_KEY, thebear.models
   )
-
-@csrf_exempt
-def playTimeHandler(request):
-  return crudAPI.handleHTTPRequest(
-    request, theBearConstants.PLAYTIME_TABLE_KEY, thebear.models
-  )
-
-@csrf_exempt
-def entryHandler(request):
-  return crudAPI.handleHTTPRequest(
-    request, theBearConstants.SONGENTRY_TABLE_KEY, thebear.models
-  )

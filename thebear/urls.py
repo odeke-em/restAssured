@@ -9,6 +9,4 @@ urlpatterns = patterns('',
   url(r'^/', views.index, name='index'),
   url(r'^index|^$', views.index, name='index'),
   url(r'^songHandler', views.songHandler, name='songHandler'),
-  url(r'^entryHandler', views.entryHandler, name='entryHandler'),
-  url(r'^playTimeHandler', views.playTimeHandler, name='playTimeHandler'),
 )

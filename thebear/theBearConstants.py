@@ -3,8 +3,6 @@
 
 # Table string names
 SONG_TABLE_KEY = "Song"
-PLAYTIME_TABLE_KEY = "PlayTime"
-SONGENTRY_TABLE_KEY = "SongEntry"
 
 # Function to determine bit length of unsigned ints
 # Enable some tail recursion
