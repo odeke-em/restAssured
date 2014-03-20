@@ -64,14 +64,11 @@ def getTablesInModels(models):
   # for every table defined in models.py
   tableNameToTypeDict = __TABLE_CACHE__.get(models, None)
   if tableNameToTypeDict is None: # Cache miss here
-     print('cache miss')
      tableNameToTypeDict = dict()
      for classTuple in inspect.getmembers(models, inspect.isclass):
         name, obj = classTuple 
         tableNameToTypeDict[name] = obj
      __TABLE_CACHE__[models] = tableNameToTypeDict # Memoize it
-  else:
-    print('Cache-hit', tableNameToTypeDict)
 
   return tableNameToTypeDict
 
