@@ -17,8 +17,8 @@ class Image(models.Model):
   # explicitly having to be a URL ie http://www.*.domain
   uri = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
 
-  dateCreated = models.DateField(auto_now_add=True) # Automatically set on first object creation
-  lastTimeEdit = models.DateField(auto_now=True) # Automatically set after every save
+  dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
+  lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
 
   # Auxilliary/Meta Information
   metaData = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True) # Optional
@@ -34,8 +34,8 @@ class Marker(models.Model):
   associatedImage = models.ForeignKey(Image)
   author   = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
 
-  dateCreated = models.DateField(auto_now_add=True) # Automatically set on first object creation
-  lastTimeEdit = models.DateField(auto_now=True) # Automatically set after every save
+  dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
+  lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
 
   comments = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True) # Optional field
   metaData = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True) # Optional field

@@ -13,6 +13,8 @@ from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 
+import datetime
+
 import httpStatusCodes
 import validatorFunctions as vFuncs
 import globalVariables as globVars
@@ -26,7 +28,8 @@ __TABLE_CACHE__ = dict()
 # but whose converters make them json-serializable
 trivialSerialzdDict = {
   lambda e: e is None: lambda e:"null",
-  lambda s: hasattr(s, globVars.NUMERICAL_DIV_ATTR): str
+  lambda s: hasattr(s, globVars.NUMERICAL_DIV_ATTR): str,
+  lambda s: isinstance(s, datetime.date) : lambda s : s.ctime()
 }
 
 tableDefinitions = dict()
@@ -86,6 +89,7 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
 
   # First create a copy of the object's attributes 
   objDict = copy.copy(pyObj.__dict__)
+  print(objDict)
   nonSerializbleElems = filter(
     lambda attrValueTuple:not isSerializable(attrValueTuple[1]),\
     objDict.items()
