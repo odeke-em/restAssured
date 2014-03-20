@@ -20,6 +20,8 @@ import globalVariables as globVars
 # Set to False during deployment
 DEVELOPER_MODE = True
 
+__TABLE_CACHE__ = dict()
+
 # Dict to detect elements that by default are non json-serializable 
 # but whose converters make them json-serializable
 trivialSerialzdDict = {
@@ -60,10 +62,16 @@ def isSerializable(pyObj):
 def getTablesInModels(models):
   # Returns a dict mapping table names to their objects,
   # for every table defined in models.py
-  tableNameToTypeDict = dict()
-  for classTuple in inspect.getmembers(models, inspect.isclass):
-    name, obj = classTuple 
-    tableNameToTypeDict[name] = obj
+  tableNameToTypeDict = __TABLE_CACHE__.get(models, None)
+  if tableNameToTypeDict is None: # Cache miss here
+     print('cache miss')
+     tableNameToTypeDict = dict()
+     for classTuple in inspect.getmembers(models, inspect.isclass):
+        name, obj = classTuple 
+        tableNameToTypeDict[name] = obj
+     __TABLE_CACHE__[models] = tableNameToTypeDict # Memoize it
+  else:
+    print('Cache-hit', tableNameToTypeDict)
 
   return tableNameToTypeDict
 
