@@ -344,9 +344,12 @@ def handleHTTPRequest(request, tableName, models):
 
 def getAllowedFilters(tableProtoType):
   if not tableProtoType: return None
+  userDefFields = __TABLE_CACHE__.get(tableProtoType, None)
 
-  objDict = tableProtoType.__dict__
-  userDefFields = filter(lambda attr:not attr.startswith("_"), objDict)
+  if userDefFields is None:
+    objDict = tableProtoType.__dict__
+    userDefFields = filter(lambda attr:not attr.startswith("_"), objDict)
+    __TABLE_CACHE__[tableProtoType] = userDefFields
 
   return userDefFields
 
