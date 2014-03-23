@@ -288,7 +288,7 @@ def deleteById(objProtoType, targetID):
   
   targetElem = objProtoType.objects.filter((globVars.ID_KEY, targetID))
   if not targetElem:
-    print("Could not find the %s element with id: %s"%(objTypeName, targetID))
+    print("During delete: could not find the element with id: %s"%(targetID))
     return globVars.DELETION_FAILURE_CODE
 
   markedElem = targetElem[0] 
@@ -385,12 +385,15 @@ def handlePUT(request, tableProtoType):
     
     data = putBody.get(globVars.DATA_KEY, None)
 
-    results = updateTable(tableProtoType, updateBody=data, updateBool=True)
-
-    changedID, nChanges, nDuplicates = results
-    resultsDict =dict(
-      id=changedID, nChanges=nChanges, nDuplicates=nDuplicates
-    )
+    results = updateTable(tableProtoType, updatesBody=data, updateBool=True)
+    print('results', results)
+    if results:
+      changedID, nChanges, nDuplicates = results
+      resultsDict = dict(
+        id=changedID, nChanges=nChanges, nDuplicates=nDuplicates
+      )
+    else:
+      resultsDict = dict(id=-1)
 
     response.write(json.dumps(resultsDict))
 
@@ -503,6 +506,7 @@ def handleGET(getBody, tableObj, models=None):
 
   addTypeInfo(responseDict)
   response.write(json.dumps(responseDict))
+  print('dataOut', responseDict)
 
   return response
 
@@ -532,9 +536,11 @@ def handleDELETE(request, tableProtoType):
   response = HttpResponse()
   try:
     body = request.read()
+    print('body heree', body)
     deleteBody = json.loads(body)
+    print(deleteBody)
   except Exception, e:
-    print(e)
+    print(e, 'During delete')
   else:
     targetID = deleteBody.get(globVars.ID_KEY, None)
     resultStatus = deleteById(tableProtoType, targetID)
