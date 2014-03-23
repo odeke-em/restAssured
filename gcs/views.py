@@ -14,10 +14,11 @@ import crudAPI
 import gcs.models
 import gcsConstants
 
+# CSRF exemption only for development purposes
+@csrf_exempt
 def index(request):
   return markerHandler(request)
 
-# CSRF exemption only for development purposes
 @csrf_exempt
 def markerHandler(request):
   return crudAPI.handleHTTPRequest(
