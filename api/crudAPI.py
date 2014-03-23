@@ -231,7 +231,7 @@ def updateTable(tableObj, updatesBody, updateBool=False):
       return errorID, nChanges, nDuplicates
 
     objMatch = tableObj.objects.filter((globVars.ID_KEY, idToChange))
-    if not objectToChange:
+    if not objMatch:
       print({"error":"Could not find the requested ID"})
       return errorID, nChanges, nDuplicates
     objectToChange = objMatch[0]
@@ -383,9 +383,7 @@ def handlePUT(request, tableProtoType):
 
   else:
     
-    data = putBody.get(globVars.DATA_KEY, None)
-
-    results = updateTable(tableProtoType, updatesBody=data, updateBool=True)
+    results = updateTable(tableProtoType, updatesBody=putBody, updateBool=True)
     print('results', results)
     if results:
       changedID, nChanges, nDuplicates = results
