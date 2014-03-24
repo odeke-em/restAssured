@@ -89,7 +89,7 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
 
   # First create a copy of the object's attributes 
   objDict = copy.copy(pyObj.__dict__)
-  print(objDict)
+
   nonSerializbleElems = filter(
     lambda attrValueTuple:not isSerializable(attrValueTuple[1]),\
     objDict.items()
@@ -221,7 +221,7 @@ def updateTable(tableObj, updatesBody, updateBool=False):
   nChanges = nDuplicates = 0
   if not isinstance(updatesBody, dict):
     print("Arg 2 must be a dictionary")
-    return elemID, newChanges, nDuplicates
+    return errorID, nChanges, nDuplicates
 
   if updateBool:
     idToChange = updatesBody.get(globVars.ID_KEY)
@@ -328,6 +328,15 @@ def handleHTTPRequest(request, tableName, models):
 
   elif requestMethod == globVars.POST_KEY:
     postBody = request.POST
+    readData = request.read()
+    if not postBody:
+      try:
+        readData = json.loads(readData)
+      except Exception, e:
+        print(e)
+      else:
+        postBody = readData
+
     return handlePOST(postBody, tableProtoType)
 
   elif requestMethod == globVars.DELETE_KEY:
@@ -382,7 +391,6 @@ def handlePUT(request, tableProtoType):
     print(e)
 
   else:
-    
     results = updateTable(tableProtoType, updatesBody=putBody, updateBool=True)
     print('results', results)
     if results:
@@ -504,14 +512,11 @@ def handleGET(getBody, tableObj, models=None):
 
   addTypeInfo(responseDict)
   response.write(json.dumps(responseDict))
-  print('dataOut', responseDict)
 
   return response
 
 def handlePOST(postBody, tableProtoType):
   response = HttpResponse()
-
-  data = postBody.get(globVars.DATA_KEY, None)
   results = updateTable(
     tableProtoType, updatesBody=postBody, updateBool=False
   )
@@ -534,9 +539,7 @@ def handleDELETE(request, tableProtoType):
   response = HttpResponse()
   try:
     body = request.read()
-    print('body heree', body)
     deleteBody = json.loads(body)
-    print(deleteBody)
   except Exception, e:
     print(e, 'During delete')
   else:
