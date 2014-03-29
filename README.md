@@ -234,7 +234,7 @@ API Usage:
         DELETE:
           $.ajax({
             url:'http://192.168.1.64:8000/thebear/songHandler', method:'PUT',
-            data:"id=2"
+            data:"id=2&title='Excellence'"
           });
 
 	python:
