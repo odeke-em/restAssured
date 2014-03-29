@@ -73,4 +73,4 @@ class Label(models.Model):
   title = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
 
   def __unicode__(self):
-    return "%s: %s"%(self.title, self._d)
+    return "%s: %s"%(self.title, self.id)
