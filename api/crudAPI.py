@@ -271,35 +271,40 @@ def updateTable(tableObj, updatesBody, updateBool=False):
   else:
      return objectToChange.id, nChanges, nDuplicates
 
-def deleteById(objProtoType, targetID):
-  # Given a table's name and the targetID, attempt a deletion 
+def deleteByAttrs(objProtoType, attrDict):
+  # Given a table's name and the identifier attributes, attempt a deletion 
   # Returns: DELETION_FAILURE_CODE on any parameter errors
   #          DELETION_EXCEPTION_CODE on deletion error/exception
   #          DELETION_SUCCESS_CODE on successful deletion
   #   *** The above codes are defined in the globVars file ***
 
-  # Accepting only positive IDs
   if not (objProtoType):
     print("Unknown table ", objProtoType)
     return globVars.DELETION_FAILURE_CODE
-  elif  not vFuncs.isUIntLike(targetID): 
-    print('A positive ID is needed')
+  elif not isinstance(attrDict, dict):
+    print('parameter \'attrDict\' must be an instance of a dict')
     return globVars.DELETION_FAILURE_CODE
-  
-  targetElem = objProtoType.objects.filter((globVars.ID_KEY, targetID))
-  if not targetElem:
-    print("During delete: could not find the element with id: %s"%(targetID))
+ 
+  tupledIdentifiers = tuple(attrDict.items()) 
+  matchedElems = objProtoType.objects.filter(*tupledIdentifiers)
+  if not matchedElems:
+    print("During delete: could not find elements with attributes: %s"%(tupledIdentifiers))
     return globVars.DELETION_FAILURE_CODE
-
-  markedElem = targetElem[0] 
-  try: 
-    markedElem.delete()
-  except Exception, e:
-    print(e)
-    return globVars.DELETION_EXCEPTION_CODE
-
   else:
-    return globVars.DELETION_SUCCESS_CODE
+    failed=[]
+    successful=[]
+    for elem in matchedElems:
+      print(elem.id)
+      elemId = elem.id
+      try:
+        elem.delete()
+      except Exception, e:
+        print(e)
+        failed.append(elemId)
+      else:
+        successful.append(elemId)
+
+    return dict(successful = successful, failed = failed)
 
 def saveToMemory(newObj):
   if not hasattr(newObj, 'save'): 
@@ -542,10 +547,10 @@ def handleDELETE(request, tableProtoType):
     deleteBody = json.loads(body)
   except Exception, e:
     print(e, 'During delete')
+    response.satus_code = httpStatusCodes.INTERNAL_SERVER_ERROR
   else:
-    targetID = deleteBody.get(globVars.ID_KEY, None)
-    resultStatus = deleteById(tableProtoType, targetID)
-    resultsDict = dict(resultStatus=resultStatus, id=targetID)
+    resultStatus = deleteByAttrs(tableProtoType, deleteBody)
+    resultsDict = dict(resultStatus=resultStatus)
 
     addTypeInfo(resultsDict)
     response.write(json.dumps(resultsDict))
