@@ -3,6 +3,7 @@
 
 # Table string names
 IMAGE_TABLE_KEY = "Image"
+LABEL_TABLE_KEY = "Label"
 MARKER_TABLE_KEY = "Marker"
 
 # Function to determine bit length of unsigned ints

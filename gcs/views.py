@@ -30,3 +30,9 @@ def imageHandler(request):
   return crudAPI.handleHTTPRequest(
     request, gcsConstants.IMAGE_TABLE_KEY, gcs.models
   )
+
+@csrf_exempt
+def labelHandler(request):
+  return crudAPI.handleHTTPRequest(
+    request, gcsConstants.LABEL_TABLE_KEY, gcs.models
+  )

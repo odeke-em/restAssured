@@ -10,4 +10,5 @@ urlpatterns = patterns('',
   url(r'^index|^$', views.index, name='index'),
   url(r'^imageHandler', views.imageHandler, name='imageHandler'),
   url(r'^markerHandler', views.markerHandler, name='markerHandler'),
+  url(r'^labelHandler', views.labelHandler, name='labelHandler'),
 )
