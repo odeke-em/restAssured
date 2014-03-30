@@ -29,7 +29,7 @@ __TABLE_CACHE__ = dict()
 trivialSerialzdDict = {
   lambda e: e is None: lambda e:"null",
   lambda s: hasattr(s, globVars.NUMERICAL_DIV_ATTR): str,
-  lambda s: isinstance(s, datetime.date) : lambda s : s.ctime()
+  lambda s: isinstance(s, datetime.date) : lambda s : str(s.strftime('%s'))
 }
 
 tableDefinitions = dict()
