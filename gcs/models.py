@@ -32,6 +32,7 @@ class Image(models.Model):
 class Marker(models.Model):
   # Who added the marker usually the operator's name
   associatedImage = models.ForeignKey(Image)
+  iconPath = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
   author   = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
 
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
