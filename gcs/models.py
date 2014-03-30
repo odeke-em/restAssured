@@ -38,9 +38,6 @@ class Marker(models.Model):
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
   lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
 
-  comments = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True) # Optional field
-  metaData = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True) # Optional field
-
   # TODO: Define a robust tuple saving mechanism
   x = models.DecimalField(
    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
