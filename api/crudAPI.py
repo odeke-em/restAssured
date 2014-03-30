@@ -273,14 +273,14 @@ def updateTable(tableObj, updatesBody, updateBool=False):
 
   if not nChanges: 
     return objectToChange.id, nChanges, nDuplicates
-
-  # Let's get that data written to memory
-  savedBoolean = saveToMemory(objectToChange)
-
-  if not savedBoolean:
-     return errorID, -1, -1
   else:
-     return objectToChange.id, nChanges, nDuplicates
+    # Let's get that data written to memory
+    savedBoolean = saveToMemory(objectToChange)
+
+    if not savedBoolean:
+      return errorID, -1, -1
+    else:
+      return objectToChange.id, nChanges, nDuplicates
 
 def deleteByAttrs(objProtoType, attrDict):
   # Given a table's name and the identifier attributes, attempt a deletion 
@@ -318,6 +318,8 @@ def deleteByAttrs(objProtoType, attrDict):
     return dict(successful = successful, failed = failed)
 
 def saveToMemory(newObj):
+  # Note: Invoking obj.save() returns None so we track a save
+  #       success only if no exception is thrown 
   if not hasattr(newObj, 'save'): 
      return False
 
@@ -326,7 +328,6 @@ def saveToMemory(newObj):
     newObj.save()
   except Exception, e:
     print(e)
-    savBool = False # Redundant variable set
   else: 
     savBool = True
 
@@ -548,7 +549,7 @@ def handlePOST(postBody, tableProtoType):
   if results:
     changedID, nChanges, nDuplicates = results
     resultsDict =\
-      dict(id=changedID, nChanges=nChanges, nDuplicates=nDuplicates)
+      dict(data=dict(id=changedID, nChanges=nChanges, nDuplicates=nDuplicates))
   else:
     response.status_code = httpStatusCodes.BAD_REQUEST  
 
