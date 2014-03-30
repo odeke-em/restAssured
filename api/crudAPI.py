@@ -88,7 +88,15 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
   if not pyObj: return dict()
 
   # First create a copy of the object's attributes 
-  objDict = copy.copy(pyObj.__dict__)
+  idGetter = dictRepr = None
+  if hasattr(pyObj, '__dict__'):
+    idGetter = lambda : pyObj.__getattribute__(globVars.ID_KEY)
+    dictRepr = pyObj.__dict__
+  else:
+    idGetter = lambda : pyObj.get(globVars.ID_KEY, None)
+    dictRepr = pyObj
+    
+  objDict = copy.copy(dictRepr)
 
   nonSerializbleElems = filter(
     lambda attrValueTuple:not isSerializable(attrValueTuple[1]),\
@@ -109,7 +117,7 @@ def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
     key, value = elem[0], elem[1]
     objDict[key] = value
 
-  objDict[globVars.ID_KEY] = pyObj.__getattribute__(globVars.ID_KEY)
+  objDict[globVars.ID_KEY] = idGetter()
 
   return objDict
 
@@ -137,14 +145,17 @@ def matchTable(tableKey, models):
 
 def getForeignKeys(queryTable):
   return filter(
-    lambda attr:attr.endswith(globVars.ID_SUFFIX), queryTable.__dict__
+    lambda attr:attr.endswith(globVars.ID_SUFFIX), queryTable
   )
 
 def getForeignKeyElems(pyObj, callerTable=None, models=None):
   if not pyObj: return None
   elif callerTable is pyObj: return None
 
-  foreignKeys = getForeignKeys(pyObj)
+  foreignKeys = getForeignKeys(
+    pyObj.__dict__ if hasattr(pyObj, '__dict__') else pyObj
+  )
+
   if not foreignKeys: return None
 
   dataDict = dict()
@@ -429,21 +440,24 @@ def handleGET(getBody, tableObj, models=None):
   dbObjs = tableObjManager
   nFiltrations = 0
 
-  allowedFilters = filter(lambda attr:attr in bodyAttrs, queriedFilters)
-  for allowedFilter in allowedFilters:
-    filterValue = getBody.get(allowedFilter, None)
-    if filterValue is None: continue
-    copyObjs = dbObjs
-    try:
-      copyObjs = copyObjs.filter((allowedFilter, filterValue))
-    except:
-      continue
-    else:
-      dbObjs = copyObjs
-      nFiltrations += 1
+  mappedValues = map(lambda k : (k, getBody.get(k, None)), bodyAttrs)
+  allowedFilters = filter(lambda e : e[1], mappedValues)
 
-  if not nFiltrations: # Only invalid filters were passed in
-     dbObjs = tableObjManager.all()
+  selectAttrs = getBody.get(globVars.SELECT_KEY, None)
+  selectKeys = None
+  if selectAttrs:
+    splitKeys = selectAttrs.split(',')
+    # Always want id's
+    if globVars.ID_KEY not in splitKeys:
+      splitKeys.append(globVars.ID_KEY) 
+
+    # Then convert to a tuple to allow dereferencing/unravelling of elements
+    selectKeys = tuple(filter(lambda key : key in bodyAttrs, splitKeys))
+
+    # Populate only the requested attributes
+    dbObjs = dbObjs.values(*selectKeys).all() if not allowedFilters else dbObjs.values(*selectKeys).filter(*allowedFilters)
+  else:
+    dbObjs = dbObjs.all() if not allowedFilters else dbObjs.filter(*allowedFilters)
   #======================================================================#
  
   #===================== Pagination and OffSets here ====================#
@@ -512,6 +526,9 @@ def handleGET(getBody, tableObj, models=None):
   metaDict = dict(
     count=objCount, format=formatKey,sort=sortKey, limit=limit, offset=offSet
   )
+
+  if selectKeys:
+    metaDict[globVars.SELECT_KEY] = selectKeys
 
   responseDict = dict(meta=metaDict, data=data)
 

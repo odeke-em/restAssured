@@ -124,7 +124,7 @@ API Usage:
 
       In the meta section, we have the sort-ing method, element count and format
 
-      Explanation:
+      + Explanation:
 	'sort' => Is any attribute present for the object eg
 
 	  Song contains attributes: Artist, TrackHash, Url, Title, Id
@@ -211,7 +211,22 @@ API Usage:
             currentTime: 1395299339.137992
 	    }'
 
-    For those of you script junkies:
+    + To perform a select ie populate only specific attributes:
+
+        supply the keyword 'select' + '=' then a list of attributes separated
+
+        by a comma  eg:
+
+          To populate just  the 'lastEditTime' and 'artist'
+
+            https://192.168.1.23:8008/thebear/songHandler/?select
+
+            That should return you in the 'meta' data section a list of
+
+            attributes that were allowed for the select
+
+
+    + For those of you script junkies:
 
       you can achieve the same by:
 
