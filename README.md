@@ -219,7 +219,7 @@ API Usage:
 
           To populate just  the 'lastEditTime' and 'artist'
 
-            https://192.168.1.23:8008/thebear/songHandler/?select
+            https://192.168.1.23:8008/thebear/songHandler/?select=lastEditTime,artist
 
             That should return you in the 'meta' data section a list of
 
