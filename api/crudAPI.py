@@ -291,15 +291,15 @@ def deleteByAttrs(objProtoType, attrDict):
 
   if not (objProtoType):
     print("Unknown table ", objProtoType)
-    return globVars.DELETION_FAILURE_CODE
+    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE)
   elif not isinstance(attrDict, dict):
     print('parameter \'attrDict\' must be an instance of a dict')
-    return globVars.DELETION_FAILURE_CODE
+    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE)
  
   tupledIdentifiers = tuple(attrDict.items()) 
   matchedElems = objProtoType.objects.filter(*tupledIdentifiers)
   if not matchedElems:
-    print("During delete: could not find elements with attributes: %s"%(tupledIdentifiers))
+    print("During delete: could not find elements with attributes: ", tupledIdentifiers)
     return globVars.DELETION_FAILURE_CODE
   else:
     failed=[]
@@ -568,7 +568,7 @@ def handleDELETE(request, tableProtoType):
     response.satus_code = httpStatusCodes.INTERNAL_SERVER_ERROR
   else:
     resultStatus = deleteByAttrs(tableProtoType, deleteBody)
-    resultsDict = dict(resultStatus=resultStatus)
+    resultsDict = dict(data=resultStatus)
 
     addTypeInfo(resultsDict)
     response.write(json.dumps(resultsDict))
