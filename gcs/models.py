@@ -46,29 +46,7 @@ class Marker(models.Model):
    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
   )
 
+  comments = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True)
+
   def __unicode__(self):
     return "Marker::{a}=>@{d}".format(a=self.author, d=self.dateCreated)
-
-class Label(models.Model):
-  associatedMarker = models.ForeignKey(Marker)
-  isMultiLine = models.BooleanField(default=False)
-  metaData = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH)
-  width = models.DecimalField(
-   max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
-  )
-  height = models.DecimalField(
-   max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
-  )
-  x = models.DecimalField(
-    max_digits=gcsConstants.MAX_DIGITS, 
-    decimal_places=gcsConstants.MAX_DECIMAL_PLACES
-  )
-  y = models.DecimalField(
-    max_digits=gcsConstants.MAX_DIGITS, 
-    decimal_places=gcsConstants.MAX_DECIMAL_PLACES
-  )
-
-  title = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
-
-  def __unicode__(self):
-    return "%s: %s"%(self.title, self.id)
