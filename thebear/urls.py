@@ -9,4 +9,5 @@ urlpatterns = patterns('',
   url(r'^/', views.index, name='index'),
   url(r'^index|^$', views.index, name='index'),
   url(r'^songHandler', views.songHandler, name='songHandler'),
+  url(r'^artistHandler', views.artistHandler, name='artistHandler'),
 )

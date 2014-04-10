@@ -3,6 +3,7 @@
 
 # Table string names
 SONG_TABLE_KEY = "Song"
+ARTIST_TABLE_KEY = "Artist"
 
 # Function to determine bit length of unsigned ints
 # Enable some tail recursion

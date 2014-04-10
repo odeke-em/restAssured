@@ -21,6 +21,12 @@ def index(request):
 
 @csrf_exempt
 def songHandler(request):
-  return crudAPI.handleHTTPRequest(
-    request, theBearConstants.SONG_TABLE_KEY, thebear.models
-  )
+    return crudAPI.handleHTTPRequest(
+        request, theBearConstants.SONG_TABLE_KEY, thebear.models
+    )
+
+@csrf_exempt
+def artistHandler(request):
+    return crudAPI.handleHTTPRequest( 
+        request, theBearConstants.ARTIST_TABLE_KEY, thebear.models
+    )

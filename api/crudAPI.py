@@ -436,7 +436,6 @@ def handleGET(getBody, tableObj, models=None):
   #========================== FILTRATION HERE ===========================#
   objProto = tableObj()
   bodyAttrs = getAllowedFilters(objProto)
-  print(bodyAttrs)
 
   dbObjs = tableObjManager
   nFiltrations = 0
