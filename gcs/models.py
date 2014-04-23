@@ -26,6 +26,61 @@ class Image(models.Model):
   # Binary data if required to save in the DB
   blob = models.CharField(max_length=gcsConstants.MAX_BLOB_LENGTH_BYTES, blank=True) # Optional
 
+  phi = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  captureTimeEpoch = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  psi = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  theta = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  alt = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  course = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  speed = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  utmEast = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  utmNorth = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  pixelPerMeter = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
+  ppmDifference = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=0.0
+  )
+
   def __unicode__(self):
     return "Image::{t}=>{p}".format(t=self.title, p=self.uri)
 
