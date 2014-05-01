@@ -31,7 +31,7 @@ class Image(models.Model):
     default=0.0
   )
 
-  captureTimeEpoch = models.DecimalField(
+  time = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
     default=0.0
   )
@@ -61,22 +61,22 @@ class Image(models.Model):
     default=0.0
   )
 
-  utmEast = models.DecimalField(
+  utm_east = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
     default=0.0
   )
 
-  utmNorth = models.DecimalField(
+  utm_north = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
     default=0.0
   )
 
-  pixelPerMeter = models.DecimalField(
+  pixel_per_meter = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
     default=0.0
   )
 
-  ppmDifference = models.DecimalField(
+  ppm_difference = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
     default=0.0
   )
