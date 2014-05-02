@@ -31,6 +31,25 @@ class Image(models.Model):
     default=0.0
   )
 
+  image_width = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=1294.0
+  )
+
+  image_height = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=964.0
+  )
+
+  viewangle_horiz = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=21.733333
+  )
+
+  viewangle_vert = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
+    default=16.833333
+  )
   time = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES,
     default=0.0
