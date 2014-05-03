@@ -290,32 +290,41 @@ def deleteByAttrs(objProtoType, attrDict):
   #   *** The above codes are defined in the globVars file ***
 
   if not (objProtoType):
-    print("Unknown table ", objProtoType)
-    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE)
+    msg = "No such table"
+    print(msg, "Unknown table ", objProtoType)
+    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
   elif not isinstance(attrDict, dict):
-    print('parameter \'attrDict\' must be an instance of a dict')
-    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE)
- 
-  tupledIdentifiers = tuple(attrDict.items()) 
-  matchedElems = objProtoType.objects.filter(*tupledIdentifiers)
-  if not matchedElems:
-    print("During delete: could not find elements with attributes: ", tupledIdentifiers)
-    return globVars.DELETION_FAILURE_CODE
-  else:
-    failed=[]
-    successful=[]
-    for elem in matchedElems:
-      print(elem.id)
-      elemId = elem.id
-      try:
-        elem.delete()
-      except Exception, ex:
-        print(ex)
-        failed.append(elemId)
-      else:
-        successful.append(elemId)
+    msg = 'parameter \'attrDict\' must be an instance of a dict'
+    print(msg)
+    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
 
-    return dict(successful = successful, failed = failed)
+  else: 
+    tupledIdentifiers = tuple(attrDict.items()) 
+    matchedElems = objProtoType.objects.filter(*tupledIdentifiers)
+
+    if not matchedElems:
+      msg = "During delete could not find such elements"
+      print(msg, tupledIdentifiers)
+      return dict(successful=[], failed=[], msg=msg)
+    else:
+      failed, successful = [], []
+
+      for elem in matchedElems:
+        print(elem.id)
+        elemId = elem.id
+        selector = failed
+
+        try:
+          elem.delete()
+          selector = successful
+
+        except Exception, ex:
+          print(ex)
+
+        finally:
+          selector.append(elemId)
+
+      return dict(successful=successful, failed=failed)
 
 def saveToMemory(newObj):
   # Note: Invoking obj.save() returns None so we track a save
@@ -567,8 +576,9 @@ def handleDELETE(request, tableProtoType):
     print(ex, 'During delete')
     response.satus_code = httpStatusCodes.INTERNAL_SERVER_ERROR
   else:
-    resultStatus = deleteByAttrs(tableProtoType, deleteBody)
-    resultsDict = dict(data=resultStatus)
+    resultsDict = dict(
+        data=deleteByAttrs(tableProtoType, deleteBody)
+    )
 
     addTypeInfo(resultsDict)
     response.write(json.dumps(resultsDict))
