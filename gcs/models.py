@@ -114,10 +114,18 @@ class Marker(models.Model):
 
   # TODO: Define a robust tuple saving mechanism
   x = models.DecimalField(
-   max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
   )
   y = models.DecimalField(
-   max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
+  )
+
+  lat = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
+  )
+
+  lon = models.DecimalField(
+    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
   )
 
   comments = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True)

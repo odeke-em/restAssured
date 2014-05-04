@@ -569,6 +569,7 @@ def handlePOST(postBody, tableProtoType):
 
 def handleDELETE(request, tableProtoType):
   response = HttpResponse()
+
   try:
     body = request.read()
     deleteBody = json.loads(body)
