@@ -14,12 +14,15 @@ class Receipient(models.Model):
 
     dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
     lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
+    token = models.CharField(max_length=chatServerConstants.MAX_TOKEN_LENGTH)
+    photoUri = models.CharField(max_length=chatServerConstants.MAX_PROFILE_URI_LENGTH, blank=True)
 
     def __unicode__(self):
         return "Receipient:<%s aka %s>"%(self.name, self.alias)
 
 class Message(models.Model):
-    sender = models.ForeignKey(Receipient)
+    sender = models.ForeignKey(Receipient, related_name='message_sender')
+    receipient = models.ForeignKey(Receipient, related_name='message_receipient')
 
     # If parentMessage is not null, this is a reply
     parentMessage = models.ForeignKey('Message', blank=True, null=True)
