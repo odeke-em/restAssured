@@ -418,7 +418,6 @@ def handlePUT(request, tableProtoType):
 
   else:
     results = updateTable(tableProtoType, updatesBody=putBody, updateBool=True)
-    print('results', results)
     if results:
       changedID, changecount, duplicatescount = results
       resultsDict = dict(

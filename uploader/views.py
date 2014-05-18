@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 
 # Setting up path for API source
-import sys, os
+import sys, os, json
 sys.path.append("api")
 import crudAPI
 
@@ -54,13 +54,14 @@ def blobHandler(request):
 
             return response
     elif request.method == 'PUT':
+        # TODO: Match up the query and update keys with those in the API
         response = HttpResponse()
         try:
             dataIn = request.read()
             content = json.loads(dataIn)
             queryContent = content.get('queryContent', {}) 
             updateContent = content.get('updateContent', {})
-            matchedQuerySet = uploader.models.Blob.objects.get(**queryContent)
+            matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
             if matchedQuerySet:
                 if request.FILES and request.FILES.get('blob', None):
                    updateContent['content'] = request.FILES['blob']
@@ -75,10 +76,35 @@ def blobHandler(request):
         finally:
             return response
     elif request.method == 'DELETE':
-        response = HttpResponse('Unimplemented')
-        response.status_code = 404
+        response = HttpResponse()
+        try:
+            dataIn = request.read() or '{}'
+            queryContent = json.loads(dataIn)
+            matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
+            print('matchedQuerySet', matchedQuerySet)
+            
+            if matchedQuerySet:
+                successful, failed = [], []
+                count = matchedQuerySet.count()
+                for item in matchedQuerySet:
+                    try:
+                        os.unlink(item.content.path)
+                    except Exception, e:
+                        failed.append((item.id, item.title, item.size, str(e),)) 
+                    else:
+                        successful.append((item.id, item.title, item.size,))
+
+                matchedQuerySet.delete()
+                response.write(json.dumps(dict(count=count, successful=successful, failed=failed)))
+
+        except Exception, e:
+            print('e', e)
+            response.status_code = 500
+            response.status_message = str(e)
+
         return response
     else:
+        # Only 'GET' will have access to the serialized content
         return crudAPI.handleHTTPRequest(
             request, uploaderConstants.BLOB_TABLE_KEY, uploader.models
         )
