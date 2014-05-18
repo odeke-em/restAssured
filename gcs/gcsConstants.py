@@ -1,21 +1,17 @@
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 # Constants for GCS
-
 # Table string names
 IMAGE_TABLE_KEY = "Image"
 LABEL_TABLE_KEY = "Label"
 MARKER_TABLE_KEY = "Marker"
 
-# Function to determine bit length of unsigned ints
-# Enable some tail recursion
-bitLength = lambda i,l=1 : l if i <= 1 else bitLength(i>>1, l+1)
-
 import sys
 pyVersion = sys.hexversion/(1<<24)
 MAX_INT = sys.maxint if pyVersion < 3 else sys.maxsize
 
+import math
 # Max values
-MAX_DIGITS = bitLength(MAX_INT)
+MAX_DIGITS = math.floor(math.log(MAX_INT, 2))
 assert(MAX_DIGITS >= 1) # Sanity check
 
 MAX_TIME_DIGITS = MAX_DIGITS

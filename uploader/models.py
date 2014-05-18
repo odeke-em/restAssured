@@ -19,6 +19,9 @@ class Blob(models.Model):
   metaData = models.CharField(max_length=uploaderConstants.MAX_COMMENT_LENGTH, blank=True) # Optional
 
   content = models.FileField(upload_to='documents') # , max_length=uploaderConstants.MAX_BLOB_LENGTH_BYTES)
+
+  size = models.IntegerField(default=0, blank=True)
+
   encoding = models.CharField(max_length=uploaderConstants.MAX_ENCODING_STR_LENGTH, default='utf-8', blank=True)
 
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation

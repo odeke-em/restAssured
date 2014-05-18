@@ -33,9 +33,10 @@ def blobHandler(request):
             response.status_code = 400
             return response
         else:
-            print('createdFile')
             bodyContent = request.POST
             stringifyedContent =dict((str(k), str(v)) for k,v in bodyContent.items())
+            stringifyedContent['size'] = request.FILES['blob'].size
+            print('size of file', request.FILES['blob'].size)
             createdFile = uploader.models.Blob(content=request.FILES['blob'], **stringifyedContent)
             print('createdFile', createdFile)
             response = HttpResponse()
