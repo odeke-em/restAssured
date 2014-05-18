@@ -2,6 +2,9 @@
 # Copyright (c) 2014
 # Uploader was inspired and examples taken from minimal-file-upload-django example by axelpale
 
+# This project's content links up with the file system and hence the only method that will use
+# crudAPI will be 'GET'. The rest will involve some heavy lifting with physical files
+
 from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.views.decorators.csrf import csrf_exempt
@@ -50,6 +53,31 @@ def blobHandler(request):
                 response.status_message = 'Exception during uploading'
 
             return response
+    elif request.method == 'PUT':
+        response = HttpResponse()
+        try:
+            dataIn = request.read()
+            content = json.loads(dataIn)
+            queryContent = content.get('queryContent', {}) 
+            updateContent = content.get('updateContent', {})
+            matchedQuerySet = uploader.models.Blob.objects.get(**queryContent)
+            if matchedQuerySet:
+                if request.FILES and request.FILES.get('blob', None):
+                   updateContent['content'] = request.FILES['blob']
+
+                matchedQuerySet.update(**updateContent)
+            response.write(json.dumps(dict(count=matchedQuerySet.count())))
+                
+        except Exception, e:
+            response.status_code = 500
+            response.status_message = str(e)
+
+        finally:
+            return response
+    elif request.method == 'DELETE':
+        response = HttpResponse('Unimplemented')
+        response.status_code = 404
+        return response
     else:
         return crudAPI.handleHTTPRequest(
             request, uploaderConstants.BLOB_TABLE_KEY, uploader.models
