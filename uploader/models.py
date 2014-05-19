@@ -21,8 +21,9 @@ class Blob(models.Model):
   content = models.FileField(upload_to='documents') # , max_length=uploaderConstants.MAX_BLOB_LENGTH_BYTES)
 
   size = models.IntegerField(default=0, blank=True)
-
+  checkSum = models.CharField(max_length=uploaderConstants.MAX_CHECKSUM_LENGTH)
   encoding = models.CharField(max_length=uploaderConstants.MAX_ENCODING_STR_LENGTH, default='utf-8', blank=True)
+  checkSumAlgoName = models.CharField(max_length=uploaderConstants.MAX_ALGONAME_LENGTH, default='md5')
 
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
   lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
