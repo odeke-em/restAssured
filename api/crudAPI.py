@@ -21,6 +21,7 @@ import globalVariables as globVars
 # Set to False during deployment
 DEVELOPER_MODE = True
 
+isImmutableAttr = lambda s: s.startswith('_') or s in onlyServerCanWrite
 __TABLE_CACHE__ = dict()
 
 # Dict to detect elements that by default are non json-serializable 
@@ -220,7 +221,7 @@ def getTableByKey(tableName, models):
   tables = getTablesInModels(models)
   return tables.get(tableName, None)
 
-def updateTable(tableObj, updatesBody, updateBool=False):
+def updateTable(tableObj, bodyFromRequest, updateBool=False):
   # This is to handle the CREATE and UPDATE methods of CRUD
   # Args:
   #  tableObj => ProtoType of the table to be updated
@@ -228,37 +229,53 @@ def updateTable(tableObj, updatesBody, updateBool=False):
   #  updateBool  => Set to False, means that you are creating an entry,
   #                 True, means an update 
   #  Note:  If updateBool is set, you MUST provide an 'id' in 'updatesBody'
-  if not (tableObj and updatesBody): 
+  if not (tableObj and bodyFromRequest): 
     return dict() # Handle this mishap later
 
   errorID = -1 
   changecount = duplicatescount = 0
-  if not isinstance(updatesBody, dict):
+  if not isinstance(bodyFromRequest, dict):
     print("Arg 2 must be a dictionary")
     return errorID, changecount, duplicatescount
 
-  if updateBool:
-    idToChange = updatesBody.get(globVars.ID_KEY)
-    # Only positive IDs
-    if not (idToChange and vFuncs.isUIntLike(idToChange)):
-      print({"error":"Expecting an id to update"})
-      return errorID, changecount, duplicatescount
-
-    objMatch = tableObj.objects.filter((globVars.ID_KEY, idToChange))
-    if not objMatch:
-      print({"error":"Could not find the requested ID"})
-      return errorID, changecount, duplicatescount
-    objectToChange = objMatch[0]
-  else:
+  allowedKeys = None
+  if not updateBool:
     objectToChange = tableObj()
+    updatesBody = bodyFromRequest
+    allowedKeys = getAllowedFilters(objectToChange)
 
-  isImmutableAttr = lambda s : s.startswith('_') or s in onlyServerCanWrite
+  else:
+    queryParams = bodyFromRequest.get('queryParams', None)
+    if queryParams is None:
+      print('Expecting a query body')
+      return errorID, changecount, duplicatescount
 
-  allowedKeys = getAllowedFilters(objectToChange)
+    else:
+      print('queryParams', queryParams)
+      objMatch = tableObj.objects.filter(**queryParams)
+      if not objMatch:
+        print('Error: Could not find items that match query params', queryParams)
+        return errorID, changecount, duplicatescount
+      else:
+        objectToChange = objMatch
+        allowedKeys = getAllowedFilters(objectToChange[0])
+        updatesBody = bodyFromRequest.get('updatesBody', None)
+        print('updatesBody', updatesBody)
+        if updatesBody is None:
+          updatesBody = {}
 
-  #The rest can be modified
-  for attr in updatesBody:
-    if attr in allowedKeys and not isImmutableAttr(attr):
+
+  print('allowedKeys', allowedKeys, updatesBody.keys())
+  cherryPickedAttrs = dict((str(k), updatesBody[k]) for k in updatesBody if k in allowedKeys and not isImmutableAttr(k))
+
+  if hasattr(objectToChange, 'update'):
+    print('ObjectToChange', objectToChange, cherryPickedAttrs)
+    objectToChange.update(**cherryPickedAttrs)
+    print('After change', objectToChange)
+    changeCount = objectToChange.count()
+    return changeCount, changeCount, -1
+  else:
+    for attr in cherryPickedAttrs:
        attr = str(attr)
 
        attrValue = updatesBody.get(attr)
@@ -271,16 +288,16 @@ def updateTable(tableObj, updatesBody, updateBool=False):
        objectToChange.__setattr__(attr, attrValue)
        changecount += 1
 
-  if not changecount: 
-    return objectToChange.id, changecount, duplicatescount
-  else:
-    # Let's get that data written to memory
-    savedBoolean = saveToMemory(objectToChange)
-
-    if not savedBoolean:
-      return errorID, -1, -1
-    else:
+    if not changecount: 
       return objectToChange.id, changecount, duplicatescount
+    else:
+      # Let's get that data written to memory
+      savedBoolean = saveToMemory(objectToChange)
+
+      if not savedBoolean:
+        return errorID, -1, -1
+      else:
+        return objectToChange.id, changecount, duplicatescount
 
 def deleteByAttrs(objProtoType, attrDict):
   # Given a table's name and the identifier attributes, attempt a deletion 
@@ -417,7 +434,7 @@ def handlePUT(request, tableProtoType):
     print(ex)
 
   else:
-    results = updateTable(tableProtoType, updatesBody=putBody, updateBool=True)
+    results = updateTable(tableProtoType, bodyFromRequest=putBody, updateBool=True)
     if results:
       changedID, changecount, duplicatescount = results
       resultsDict = dict(
@@ -549,7 +566,7 @@ def handleGET(getBody, tableObj, models=None):
 def handlePOST(postBody, tableProtoType):
   response = HttpResponse()
   results = updateTable(
-    tableProtoType, updatesBody=postBody, updateBool=False
+    tableProtoType, bodyFromRequest=postBody, updateBool=False
   )
 
   resultsDict = dict()

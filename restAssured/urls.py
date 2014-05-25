@@ -9,6 +9,7 @@ urlpatterns = patterns('',
     # url(r'^comm/*', include('comm.urls')),
     (r'^thebear/*', include('thebear.urls')),
     (r'^uploader/*', include('uploader.urls')),
+    (r'^jobTable/*', include('jobTable.urls')),
     (r'^chatServer/*', include('chatServer.urls')),
     (r'^admin/', include(admin.site.urls)),
 
