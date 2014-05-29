@@ -207,8 +207,8 @@ def getConnectedElems(pyObj, models):
       connConnElems = getForeignKeyElems(connElem, pyObj, models) 
       refObjs = getConnectedElems(connElem, models)
 
-      copyDictTo(connConnElems, serializDict)
-      copyDictTo(refObjs, serializDict)
+      mergeDicts(connConnElems, serializDict)
+      mergeDicts(refObjs, serializDict)
 
       objList.append(serializDict)
 
@@ -399,7 +399,7 @@ def getAllowedFilters(tableProtoType):
 
   return userDefFields
 
-def copyDictTo(src, dest):
+def mergeDicts(src, dest):
   if not (hasattr(src, 'items') and hasattr(dest, '__setitem__')):
     return
 
@@ -534,12 +534,12 @@ def handleGET(getBody, tableObj, models=None):
   for dbObj in dbObjIterator:
     dbElemDict = getSerializableElems(dbObj)
     foreignKeyElems = getForeignKeyElems(dbObj, models=models)
-    if foreignKeyElems:  copyDictTo(foreignKeyElems, dbElemDict)
+    if foreignKeyElems:  mergeDicts(foreignKeyElems, dbElemDict)
     
-    if connectedObjsBool: 
+    if connectedObjsBool: # A join requested
       connElems = getConnectedElems(dbObj, models)
       if connElems:
-        copyDictTo(connElems, dbElemDict)
+        mergeDicts(connElems, dbElemDict)
 
     data.append(dbElemDict)
 
