@@ -251,7 +251,6 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
       return errorID, changecount, duplicatescount
 
     else:
-      print('queryParams', queryParams)
       objMatch = tableObj.objects.filter(**queryParams)
       if not objMatch:
         print('Error: Could not find items that match query params', queryParams)
@@ -260,18 +259,14 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
         objectToChange = objMatch
         allowedKeys = getAllowedFilters(objectToChange[0])
         updatesBody = bodyFromRequest.get('updatesBody', None)
-        print('updatesBody', updatesBody)
         if updatesBody is None:
           updatesBody = {}
 
 
-  print('allowedKeys', allowedKeys, updatesBody.keys())
   cherryPickedAttrs = dict((str(k), updatesBody[k]) for k in updatesBody if k in allowedKeys and not isImmutableAttr(k))
 
   if hasattr(objectToChange, 'update'):
-    print('ObjectToChange', objectToChange, cherryPickedAttrs)
     objectToChange.update(**cherryPickedAttrs)
-    print('After change', objectToChange)
     changeCount = objectToChange.count()
     return changeCount, changeCount, -1
   else:
@@ -327,7 +322,6 @@ def deleteByAttrs(objProtoType, attrDict):
       failed, successful = [], []
 
       for elem in matchedElems:
-        print(elem.id)
         elemId = elem.id
         selector = failed
 
@@ -406,7 +400,7 @@ def getAllowedFilters(tableProtoType):
   return userDefFields
 
 def copyDictTo(src, dest):
-  if not (isinstance(src, dict) and isinstance(src, dict)): 
+  if not (hasattr(src, 'items') and hasattr(dest, '__setitem__')):
     return
 
   for srcKey, srcValue in src.items():
