@@ -22,6 +22,7 @@ import globalVariables as globVars
 DEVELOPER_MODE = True
 
 isImmutableAttr = lambda s: s.startswith('_') or s in onlyServerCanWrite
+isMutableAttr   = lambda s: not isImmutableAttr(s)
 __TABLE_CACHE__ = dict()
 
 # Dict to detect elements that by default are non json-serializable 
@@ -164,7 +165,7 @@ def getForeignKeyElems(pyObj, callerTable=None, models=None):
 
   dataDict = dict()
   for foreignKey in foreignKeys:
-    foreignId = pyObj.__getattribute__(foreignKey)
+    foreignId = getattr(pyObj, foreignKey, None)
     if not foreignId: continue # Corrupted data detected
 
     tableName = suffixStrip(foreignKey, globVars.ID_SUFFIX)
@@ -195,7 +196,7 @@ def getConnectedElems(pyObj, models):
 
   setElemsDict = dict()
   for objset in objsets:
-    connElems = pyObj.__getattribute__(objset)
+    connElems = getattr(pyObj, objset, None)
 
     if not hasattr(connElems, 'all'): continue # Or handle this miss as an err
 
@@ -263,7 +264,9 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
           updatesBody = {}
 
 
-  cherryPickedAttrs = dict((str(k), updatesBody[k]) for k in updatesBody if k in allowedKeys and not isImmutableAttr(k))
+  cherryPickedAttrs = dict(
+    (str(k), updatesBody[k]) for k in updatesBody if isMutableAttr(k) and k in allowedKeys
+  )
 
   if hasattr(objectToChange, 'update'):
     objectToChange.update(**cherryPickedAttrs)
@@ -275,12 +278,12 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
 
        attrValue = updatesBody.get(attr)
        if updateBool: 
-          origValue = objectToChange.__getattribute__(attr)
+          origValue = getattr(objectToChange, attr, None)
           if (attrValue == origValue): 
              duplicatescount += 1
              continue
 
-       objectToChange.__setattr__(attr, attrValue)
+       setattr(objectToChange, attr, attrValue)
        changecount += 1
 
     if not changecount: 
