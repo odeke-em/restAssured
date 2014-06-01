@@ -26,7 +26,7 @@ class Blob(models.Model):
   checkSumAlgoName = models.CharField(max_length=uploaderConstants.MAX_ALGONAME_LENGTH, default='md5')
 
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
-  lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
+  lastEditTime = models.DateTimeField(auto_now=True) # Automatically set after every save
 
   def __unicode__(self):
     return "Blob::{t}{a} {e}".format(t=self.title, a=self.author, e=self.encoding)

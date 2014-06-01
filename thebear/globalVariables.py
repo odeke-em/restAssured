@@ -12,7 +12,7 @@ DELETE_KEY = "DELETE"
 #Element attribute keys
 ID_KEY = "id"
 STATUS_KEY = "status"
-LAST_TIME_EDIT_KEY = "lastTimeEdit"
+LAST_EDIT_TIME_KEY = "lastEditTime"
 SUBMISSION_DATE_KEY = "submissionDate"
 
 DATA_KEY = "data"

@@ -17,9 +17,10 @@ class Job(models.Model):
     author  = models.CharField(max_length=constants.MAX_AUTHOR_LENGTH)
     message = models.CharField(max_length=constants.MAX_MESSAGE_LENGTH)
     response = models.CharField(max_length=constants.MAX_RESPONSE_LENGTH)
+    metaData = models.CharField(max_length=constants.MAX_METADATA_LENGTH)
 
     dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
-    lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
+    lastEditTime = models.DateTimeField(auto_now=True) # Automatically set after every save
 
     assignedWorker = models.ForeignKey(Worker)
     def __unicode__(self):

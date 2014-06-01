@@ -18,7 +18,7 @@ class Image(models.Model):
   uri = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
 
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
-  lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
+  lastEditTime = models.DateTimeField(auto_now=True) # Automatically set after every save
 
   # Auxilliary/Meta Information
   metaData = models.CharField(max_length=gcsConstants.MAX_COMMENT_LENGTH, blank=True) # Optional
@@ -110,15 +110,13 @@ class Marker(models.Model):
   author   = models.CharField(max_length=gcsConstants.MAX_MISC_STR_LENGTH)
 
   dateCreated = models.DateTimeField(auto_now_add=True) # Automatically set on first object creation
-  lastTimeEdit = models.DateTimeField(auto_now=True) # Automatically set after every save
+  lastEditTime = models.DateTimeField(auto_now=True) # Automatically set after every save
+
+  longHashNumber = models.BigIntegerField()
 
   # TODO: Define a robust tuple saving mechanism
-  x = models.DecimalField(
-    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
-  )
-  y = models.DecimalField(
-    max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES
-  )
+  x = models.IntegerField()
+  y = models.IntegerField()
 
   lat = models.DecimalField(
     max_digits=gcsConstants.MAX_DIGITS, decimal_places=gcsConstants.MAX_DECIMAL_PLACES

@@ -21,8 +21,10 @@ import globalVariables as globVars
 # Set to False during deployment
 DEVELOPER_MODE = True
 
+isCallabe       = lambda a: hasattr(a, '__call__')
 isImmutableAttr = lambda s: s.startswith('_') or s in onlyServerCanWrite
 isMutableAttr   = lambda s: not isImmutableAttr(s)
+
 __TABLE_CACHE__ = dict()
 
 # Dict to detect elements that by default are non json-serializable 
@@ -257,18 +259,21 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
         print('Error: Could not find items that match query params', queryParams)
         return errorID, changecount, duplicatescount
       else:
-        objectToChange = objMatch
-        allowedKeys = getAllowedFilters(objectToChange[0])
+        allowedKeys = getAllowedFilters(objMatch[0])
+        if objMatch.count() == 1: # Just one item can be individually inspected
+            objectToChange = objMatch[0]
+        else:
+            objectToChange = objMatch
+
         updatesBody = bodyFromRequest.get('updatesBody', None)
         if updatesBody is None:
           updatesBody = {}
-
 
   cherryPickedAttrs = dict(
     (str(k), updatesBody[k]) for k in updatesBody if isMutableAttr(k) and k in allowedKeys
   )
 
-  if hasattr(objectToChange, 'update'):
+  if hasattr(objectToChange, 'update') and isCallable(objectToChange.update):
     objectToChange.update(**cherryPickedAttrs)
     changeCount = objectToChange.count()
     return changeCount, changeCount, -1
@@ -432,6 +437,7 @@ def handlePUT(request, tableProtoType):
 
   else:
     results = updateTable(tableProtoType, bodyFromRequest=putBody, updateBool=True)
+
     if results:
       changedID, changecount, duplicatescount = results
       resultsDict = dict(
@@ -565,6 +571,7 @@ def handlePOST(postBody, tableProtoType):
   results = updateTable(
     tableProtoType, bodyFromRequest=postBody, updateBool=False
   )
+
 
   resultsDict = dict()
 

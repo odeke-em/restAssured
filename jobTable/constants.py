@@ -22,3 +22,4 @@ MAX_AUTHOR_LENGTH = 400 # Arbitrary value
 MAX_MESSAGE_LENGTH = 1000 # Arbitrary value but taking account things like URLS
 MAX_RESPONSE_LENGTH = 500 # Arbitrary value
 MAX_PURPOSE_LENGTH = 100 # Arbitrary value
+MAX_METADATA_LENGTH = 300 # Arbitrary value
