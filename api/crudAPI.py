@@ -21,10 +21,13 @@ import globalVariables as globVars
 # Set to False during deployment
 DEVELOPER_MODE = True
 
-isCallabe       = lambda a: hasattr(a, '__call__')
+isCallable = lambda a: hasattr(a, '__call__')
+isCallableAttr = lambda obj,attr: hasattr(obj, attr) and isCallable(getattr(obj, attr))
+
 isImmutableAttr = lambda s: s.startswith('_') or s in onlyServerCanWrite
 isMutableAttr   = lambda s: not isImmutableAttr(s)
 
+setSuffixCompile = re.compile(globVars.SET_SUFFIX_RE, re.UNICODE)
 __TABLE_CACHE__ = dict()
 
 # Dict to detect elements that by default are non json-serializable 
@@ -192,15 +195,17 @@ def getConnectedElems(pyObj, models):
   # Return all table instances in which the current 'pyObj' is a foreign
   # key. These can normally be accessed by the table names in 
   #  lower_case <with> _set suffixed, eg pyObj.comment_set
-  if not pyObj: return None
-  setSuffixCompile = re.compile(globVars.SET_SUFFIX_RE, re.UNICODE)
+  if not pyObj:
+     return None
+
   objsets = [attr for attr in dir(pyObj) if setSuffixCompile.search(attr)]
 
   setElemsDict = dict()
   for objset in objsets:
     connElems = getattr(pyObj, objset, None)
 
-    if not hasattr(connElems, 'all'): continue # Or handle this miss as an err
+    if not isCallableAttr(connElems, 'all'): # Or handle this miss as an err
+       continue
 
     objList = list()
     for connElem in connElems.all():
@@ -220,9 +225,9 @@ def getConnectedElems(pyObj, models):
   return setElemsDict 
 
 def getTableByKey(tableName, models):
-  if not tableName: return None
-  tables = getTablesInModels(models)
-  return tables.get(tableName, None)
+  if tableName:
+    tables = getTablesInModels(models)
+    return tables.get(tableName, None)
 
 def updateTable(tableObj, bodyFromRequest, updateBool=False):
   # This is to handle the CREATE and UPDATE methods of CRUD
@@ -249,8 +254,8 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
 
   else:
     queryParams = bodyFromRequest.get('queryParams', None)
-    if queryParams is None:
-      print('Expecting a query body')
+    if not isinstance(queryParams, dict):
+      print('Expecting a query body passed in as a dict')
       return errorID, changecount, duplicatescount
 
     else:
@@ -273,13 +278,13 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
     (str(k), updatesBody[k]) for k in updatesBody if isMutableAttr(k) and k in allowedKeys
   )
 
-  if hasattr(objectToChange, 'update') and isCallable(objectToChange.update):
+  if isCallableAttr(objectToChange, 'update'):
     objectToChange.update(**cherryPickedAttrs)
     changeCount = objectToChange.count()
     return changeCount, changeCount, -1
   else:
     for attr in cherryPickedAttrs:
-       attr = str(attr)
+       attr = str(attr) # To handle the initial unicode form eg u'key' yet desired is 'key'
 
        attrValue = updatesBody.get(attr)
        if updateBool: 
@@ -297,10 +302,10 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
       # Let's get that data written to memory
       savedBoolean = saveToMemory(objectToChange)
 
-      if not savedBoolean:
-        return errorID, -1, -1
-      else:
+      if savedBoolean:
         return objectToChange.id, changecount, duplicatescount
+      else:
+        return errorID, -1, -1
 
 def deleteByAttrs(objProtoType, attrDict):
   # Given a table's name and the identifier attributes, attempt a deletion 
@@ -309,7 +314,7 @@ def deleteByAttrs(objProtoType, attrDict):
   #          DELETION_SUCCESS_CODE on successful deletion
   #   *** The above codes are defined in the globVars file ***
 
-  if not (objProtoType):
+  if not objProtoType:
     msg = "No such table"
     print(msg, "Unknown table ", objProtoType)
     return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
@@ -351,15 +356,15 @@ def saveToMemory(newObj):
   if not hasattr(newObj, 'save'): 
      return False
 
-  issaved = False
+  savedBool = False
   try: 
     newObj.save()
   except Exception, ex:
     print(ex)
   else: 
-    issaved = True
+    savedBool = True
 
-  return issaved
+  return savedBool
 
 def handleHTTPRequest(request, tableName, models):
   requestMethod = request.method
@@ -405,20 +410,17 @@ def getAllowedFilters(tableProtoType):
       userDefFields = [attr for attr in objDict if not attr.startswith('_')]
       __TABLE_CACHE__[tableProtoType] = userDefFields
 
-  return userDefFields
+    return userDefFields
 
 def mergeDicts(src, dest):
-  if not (hasattr(src, 'items') and hasattr(dest, '__setitem__')):
-    return
-
-  for srcKey, srcValue in src.items():
-    dest[srcKey] = srcValue
+  if hasattr(src, 'items') and hasattr(dest, '__setitem__'):
+    for srcKey, srcValue in src.items():
+      dest[srcKey] = srcValue
 
 def addTypeInfo(outDict):
   if isinstance(outDict, dict):
     outDict["dataType"] = "json"
     outDict["mimeType"] = "application/json"
-
     outDict["currentTime"] = getCurrentTime()
 
 def getCurrentTime():
