@@ -6,6 +6,7 @@ FINISHED_STATUS = 'finished'
 FRESH_STATUS = 'fresh'
 
 JOB_TABLE_KEY = 'Job'
+ROUTE_TABLE_KEY = 'Route'
 WORKER_TABLE_KEY = 'Worker'
 
 STATUS_CHOICES = (
@@ -23,3 +24,6 @@ MAX_MESSAGE_LENGTH = 1000 # Arbitrary value but taking account things like URLS
 MAX_RESPONSE_LENGTH = 500 # Arbitrary value
 MAX_PURPOSE_LENGTH = 100 # Arbitrary value
 MAX_METADATA_LENGTH = 300 # Arbitrary value
+
+MAX_ADDRESS_LENGTH = 40 # Arbitrary value
+MAX_LOCATION_LENGTH = 100 # Arbitrary value

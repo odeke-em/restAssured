@@ -30,3 +30,9 @@ def workerHandler(request):
     return crudAPI.handleHTTPRequest(
         request, constants.WORKER_TABLE_KEY, jobTable.models
     )
+
+@csrf_exempt
+def routeHandler(request):
+    return crudAPI.handleHTTPRequest(
+        request, constants.ROUTE_TABLE_KEY, jobTable.models
+    )

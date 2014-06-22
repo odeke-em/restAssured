@@ -10,4 +10,5 @@ urlpatterns = patterns('',
   url(r'^index|^$', views.index, name='index'),
   url(r'^jobHandler', views.jobHandler, name='jobHandler'),
   url(r'^workerHandler', views.workerHandler, name='workerHandler'),
+  url(r'^routeHandler', views.routeHandler, name='routeHandler'),
 )
