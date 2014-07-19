@@ -46,6 +46,8 @@ onlyServerCanWrite = [
   globVars.ID_KEY, globVars.DATE_CREATED_KEY, globVars.LAST_EDIT_TIME_KEY
 ]
 
+sortKeyCompile = re.compile(r"([^\s]*)\s*%s$"%(globVars.REVERSE_KEY), re.UNICODE|re.IGNORECASE)
+
 def translateSortKey(sortKey):
   if not sortKey:
     # If no sort parameter is passed in, sort by the newest reverse id
@@ -53,9 +55,7 @@ def translateSortKey(sortKey):
     return globVars.ID_KEY, True
   
   # Let's get those reverse keys
-  sortKeySearch = re.search(
-    r"([^\s]*)\s*%s$"%(globVars.REVERSE_KEY), sortKey, re.UNICODE|re.IGNORECASE
-  )
+  sortKeySearch = sortKeyCompile.search(sortKey)
 
   if sortKeySearch:
     return sortKeySearch.groups(1)[0], True
@@ -426,7 +426,7 @@ def addTypeInfo(outDict):
 def getCurrentTime():
   return time.time()
 
-######################### CRUD handlers below ########################
+################################# CRUD handlers below ################################
 def handlePUT(request, tableProtoType):
   response = HttpResponse()
 
@@ -463,7 +463,7 @@ def handleGET(getBody, tableObj, models=None):
   tableObjManager = tableObj.objects
   objCount = tableObjManager.count()
 
-  #========================== FILTRATION HERE ===========================#
+  #================================ FILTRATION HERE ================================#
   objProto = tableObj()
   bodyAttrs = getAllowedFilters(objProto)
 
@@ -485,12 +485,13 @@ def handleGET(getBody, tableObj, models=None):
     selectKeys = tuple([key for key in splitKeys if key in bodyAttrs])
 
     # Populate only the requested attributes
-    dbObjs = dbObjs.values(*selectKeys).all() if not allowedFilters else dbObjs.values(*selectKeys).filter(*allowedFilters)
+    dbObjs = dbObjs.values(*selectKeys).all() if not allowedFilters\
+                else dbObjs.values(*selectKeys).filter(*allowedFilters)
   else:
     dbObjs = dbObjs.all() if not allowedFilters else dbObjs.filter(*allowedFilters)
-  #======================================================================#
+  #=================================================================================#
  
-  #===================== Pagination and OffSets here ====================#
+  #========================== Pagination and OffSets here ==========================#
   limit = getBody.get(globVars.LIMIT_KEY, None)
 
   if limit is None: 
@@ -513,7 +514,7 @@ def handleGET(getBody, tableObj, models=None):
   if limit > maxSize: limit = maxSize 
   elif limit: limit += offSet
 
-  #========================== SORTING HERE ==============================#
+  #=============================== SORTING HERE ===================================#
   sortKey = getBody.get(globVars.SORT_KEY, None)
   sortKey, reverseTrue = translateSortKey(sortKey)
   if sortKey not in bodyAttrs: 
@@ -524,9 +525,9 @@ def handleGET(getBody, tableObj, models=None):
   
   dbObjs = dbObjs.order_by(str(sortKey))
 
-  #======================================================================#
+  #================================================================================#
 
-  #========================= FORMAT HERE ================================#
+  #============================== FORMAT HERE =====================================#
   formatKey = getBody.get(globVars.FORMAT_KEY, globVars.LONG_FMT_KEY)
 
   # Defining the default behaviour of the API to always return results
