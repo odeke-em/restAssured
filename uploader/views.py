@@ -57,8 +57,7 @@ def blobHandler(request):
         # TODO: Match up the query and update keys with those in the API
         response = HttpResponse()
         try:
-            dataIn = request.read()
-            content = json.loads(dataIn)
+            content = request.GET # Get content from request.read()
             queryContent = content.get('queryContent', {}) 
             updateContent = content.get('updateContent', {})
             matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
@@ -70,6 +69,7 @@ def blobHandler(request):
             response.write(json.dumps(dict(count=matchedQuerySet.count())))
                 
         except Exception, e:
+            print(e)
             response.status_code = 500
             response.status_message = str(e)
 
