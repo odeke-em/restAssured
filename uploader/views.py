@@ -78,9 +78,10 @@ def blobHandler(request):
     elif request.method == 'DELETE':
         response = HttpResponse()
         try:
-            dataIn = request.read() or '{}'
-            queryContent = json.loads(dataIn)
-            matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
+            queryContent = request.GET # TODO: Enforce param passing in through .read()
+            fromUnicodeConv = dict((str(k), str(v)) for k,v in queryContent.items())
+            # print('fromUC', fromUnicodeConv)
+            matchedQuerySet = uploader.models.Blob.objects.filter(**fromUnicodeConv)
             print('matchedQuerySet', matchedQuerySet)
             
             if matchedQuerySet:
