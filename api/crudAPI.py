@@ -158,9 +158,17 @@ def getForeignKeys(queryTable):
     lambda attr:attr.endswith(globVars.ID_SUFFIX), queryTable
   )
 
-def getForeignKeyElems(pyObj, callerTable=None, models=None):
-  if not pyObj: return None
-  elif callerTable is pyObj: return None
+def getForeignKeyElems(pyObj, parentMap={}, models=None):
+  if not pyObj:
+    return None
+
+  hashOfObj = hash(pyObj)
+  if hashOfObj in parentMap:
+    print('\033[47mAlready memoized %d\033[00m'%(pyObj.id))
+    return None
+
+  # Memoize it now
+  parentMap[hashOfObj] = hashOfObj
 
   foreignKeys = getForeignKeys(
     pyObj.__dict__ if hasattr(pyObj, '__dict__') else pyObj
@@ -182,8 +190,7 @@ def getForeignKeyElems(pyObj, callerTable=None, models=None):
 
     connObj = connObjs[0]
 
-    # Detected self/cyclic reference
-    if (callerTable == connObj): 
+    if (hash(connObj) in parentMap): # Detected self/cyclic reference
        continue
 
     serializdDict = getSerializableElems(connObj)
@@ -191,7 +198,7 @@ def getForeignKeyElems(pyObj, callerTable=None, models=None):
 
   return dataDict
 
-def getConnectedElems(pyObj, models):
+def getConnectedElems(pyObj, alreadyVisited, models):
   # Return all table instances in which the current 'pyObj' is a foreign
   # key. These can normally be accessed by the table names in 
   #  lower_case <with> _set suffixed, eg pyObj.comment_set
@@ -212,8 +219,13 @@ def getConnectedElems(pyObj, models):
       serializDict = getSerializableElems(connElem)
       if not serializDict: continue
 
-      connConnElems = getForeignKeyElems(connElem, pyObj, models) 
-      refObjs = getConnectedElems(connElem, models)
+      if pyObj not in alreadyVisited:
+        objHash = hash(pyObj) # No need to memoize the object, its hash will do
+        alreadyVisited[objHash] = objHash
+        # print('Memoizing', pyObj.id)
+
+      connConnElems = getForeignKeyElems(connElem, alreadyVisited, models) 
+      refObjs = getConnectedElems(connElem, alreadyVisited, models)
 
       mergeDicts(connConnElems, serializDict)
       mergeDicts(refObjs, serializDict)
@@ -543,13 +555,14 @@ def handleGET(getBody, tableObj, models=None):
   else:
     dbObjIterator = dbObjs.order_by(sortKey)[offSet:limit]
 
+  alreadyVisited = {}
   for dbObj in dbObjIterator:
     dbElemDict = getSerializableElems(dbObj)
-    foreignKeyElems = getForeignKeyElems(dbObj, models=models)
+    foreignKeyElems = getForeignKeyElems(dbObj, alreadyVisited, models=models)
     if foreignKeyElems:  mergeDicts(foreignKeyElems, dbElemDict)
     
     if connectedObjsBool: # A join requested
-      connElems = getConnectedElems(dbObj, models)
+      connElems = getConnectedElems(dbObj, alreadyVisited, models)
       if connElems:
         mergeDicts(connElems, dbElemDict)
 
