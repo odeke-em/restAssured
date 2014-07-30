@@ -162,13 +162,14 @@ def getForeignKeyElems(pyObj, parentMap={}, models=None):
   if not pyObj:
     return None
 
-  hashOfObj = hash(pyObj)
-  if hashOfObj in parentMap:
-    print('\033[47mAlready memoized %d\033[00m'%(pyObj.id))
-    return None
+  if pyObj.__hash__:
+    hashOfObj = hash(pyObj)
+    if hashOfObj in parentMap:
+        print('\033[47mAlready memoized %d\033[00m'%(pyObj.id))
+        return None
 
-  # Memoize it now
-  parentMap[hashOfObj] = hashOfObj
+    # Memoize it now
+    parentMap[hashOfObj] = hashOfObj
 
   foreignKeys = getForeignKeys(
     pyObj.__dict__ if hasattr(pyObj, '__dict__') else pyObj
@@ -190,7 +191,8 @@ def getForeignKeyElems(pyObj, parentMap={}, models=None):
 
     connObj = connObjs[0]
 
-    if (hash(connObj) in parentMap): # Detected self/cyclic reference
+    # Checking for self/cyclic reference
+    if connObj.__hash__ and (hash(connObj) in parentMap):
        continue
 
     serializdDict = getSerializableElems(connObj)
