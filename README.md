@@ -1,5 +1,5 @@
 
-RestAssured v0.0.1
+RestAssured
 ==================================================
 
   API for setting up any web project. Interfaces' with Django's

@@ -18,7 +18,8 @@ class Blob(models.Model):
   # Auxilliary/Meta Information
   metaData = models.CharField(max_length=uploaderConstants.MAX_COMMENT_LENGTH, blank=True) # Optional
 
-  content = models.FileField(upload_to='documents') # , max_length=uploaderConstants.MAX_BLOB_LENGTH_BYTES)
+  content = models.FileField(upload_to='documents')
+  parent = models.ForeignKey('Blob', null=True)
 
   size = models.IntegerField(default=0, blank=True)
   checkSum = models.CharField(max_length=uploaderConstants.MAX_CHECKSUM_LENGTH)
