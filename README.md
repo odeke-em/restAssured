@@ -63,4 +63,4 @@ Getting started:
 Detailed Walkthrough and example:
 =================================
 
-   Present here: [detailedUsage.md](https://github.com/odeke-em/restAssured.git/examples/detailedUsage.md "Detail Usage")
+   Present here: [detailedUsage.md](https://github.com/odeke-em/restAssured.git/blob/master/examples/detailedUsage.md "Detail Usage")
