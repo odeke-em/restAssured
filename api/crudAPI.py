@@ -46,7 +46,9 @@ onlyServerCanWrite = [
   globVars.ID_KEY, globVars.DATE_CREATED_KEY, globVars.LAST_EDIT_TIME_KEY
 ]
 
-sortKeyCompile = re.compile(r"([^\s]*)\s*%s$"%(globVars.REVERSE_KEY), re.UNICODE|re.IGNORECASE)
+sortKeyCompile = re.compile(
+    r"([^\s]*)\s*%s$"%(globVars.REVERSE_KEY), re.UNICODE|re.IGNORECASE
+)
 
 def translateSortKey(sortKey):
   if not sortKey:
@@ -252,7 +254,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
   #                 True, means an update 
   #  Note:  If updateBool is set, you MUST provide an 'id' in 'updatesBody'
   if not (tableObj and bodyFromRequest): 
-    return dict() # Handle this mishap later
+    return None # Handle this mishap later
 
   errorID = -1 
   changecount = duplicatescount = 0
