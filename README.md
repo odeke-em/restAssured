@@ -1,5 +1,5 @@
 
-RestAssured
+RestAssured  [![wercker status](https://app.wercker.com/status/ed37425ce64eb4c9f78c7a5f3212df2f/m "wercker status")](https://app.wercker.com/project/bykey/ed37425ce64eb4c9f78c7a5f3212df2f)
 ==================================================
 
   API for setting up any web project. Interfaces' with Django's
