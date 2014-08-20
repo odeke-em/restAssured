@@ -573,7 +573,8 @@ def handleGET(getBody, tableObj, models=None):
     data.append(dbElemDict)
 
   metaDict = dict(
-    count=objCount, format=formatKey,sort=sortKey, limit=limit, offset=offSet
+    collectionCount=objCount, count=len(data),
+    format=formatKey,sort=sortKey, limit=limit, offset=offSet
   )
 
   if selectKeys:
