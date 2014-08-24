@@ -11,6 +11,7 @@ urlpatterns = patterns('',
     (r'^uploader/*', include('uploader.urls')),
     (r'^jobTable/*', include('jobTable.urls')),
     (r'^chatServer/*', include('chatServer.urls')),
+    (r'^core/*', include('core.urls')),
     (r'^admin/', include(admin.site.urls)),
 
     # Uncomment the admin/doc line below to enable admin documentation:

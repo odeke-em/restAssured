@@ -137,7 +137,8 @@ INSTALLED_APPS = (
     'gcs',
     'chatServer',
     'uploader',
-    'jobTable'
+    'jobTable',
+    'core',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 )
