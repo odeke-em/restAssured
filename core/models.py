@@ -62,8 +62,3 @@ class ForumPost(models.Model): # forum_posts
 
     dateCreated = models.DateTimeField(auto_now_add=True)
     lastEditTime = models.DateTimeField(auto_now=True)
-
-class ForumForumPost(models.Model): # forum_forum_posts
-    forum = models.ForeignKey(Forum)
-    postId = models.ForeignKey(ForumPost)
-    exportId = models.IntegerField(default=-1) # Arbitrary value
