@@ -48,7 +48,7 @@ class Forum(models.Model): # forum_forum
 class ForumPost(models.Model): # forum_posts
     user = models.ForeignKey(CoreUser)
     forum = models.ForeignKey(Forum)
-    parent = models.ForeignKey('ForumPost', blank=True)
+    parent = models.ForeignKey('ForumPost', blank=True, default=None)
 
     body = models.TextField(blank=True)
     title = models.CharField(max_length=255)
@@ -57,6 +57,9 @@ class ForumPost(models.Model): # forum_posts
     
     special = models.CharField(max_length=100)
     exportId = models.IntegerField(default=-1) # Arbitrary value
+    created = models.CharField(max_length=100) # From older datetime as str
+    modified = models.CharField(max_length=100) # From older datetime as str
+
     dateCreated = models.DateTimeField(auto_now_add=True)
     lastEditTime = models.DateTimeField(auto_now=True)
 
