@@ -57,16 +57,24 @@ def blobHandler(request):
         # TODO: Match up the query and update keys with those in the API
         response = HttpResponse()
         try:
+            print(dir(request))
             content = request.GET # Get content from request.read()
             queryContent = content.get('queryContent', {}) 
             updateContent = content.get('updateContent', {})
-            matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
-            if matchedQuerySet:
-                if request.FILES and request.FILES.get('blob', None):
-                   updateContent['content'] = request.FILES['blob']
+            if not queryContent:
+                response.write(json.dumps(
+                    dict(count=0, msg='Specify at least one identifier')
+                ))
+                response.status_code = 400
+            else:
+                print('updateContent here', updateContent)
+                matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
+                if matchedQuerySet:
+                    if request.FILES and request.FILES.get('blob', None):
+                        updateContent['content'] = request.FILES['blob']
 
-                matchedQuerySet.update(**updateContent)
-            response.write(json.dumps(dict(count=matchedQuerySet.count())))
+                    matchedQuerySet.update(**updateContent)
+                response.write(json.dumps(dict(count=matchedQuerySet.count())))
                 
         except Exception, e:
             print(e)
@@ -80,7 +88,7 @@ def blobHandler(request):
         try:
             queryContent = request.GET # TODO: Enforce param passing in through .read()
             fromUnicodeConv = dict((str(k), str(v)) for k,v in queryContent.items())
-            # print('fromUC', fromUnicodeConv)
+            print('fromUC', fromUnicodeConv)
             matchedQuerySet = uploader.models.Blob.objects.filter(**fromUnicodeConv)
             print('matchedQuerySet', matchedQuerySet)
             
