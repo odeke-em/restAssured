@@ -83,6 +83,20 @@ def getTablesInModels(models):
 
   return tableNameToTypeDict
 
+def captureOnlyAllowedAttrsFromObj(samplerObj, mapUnderInspection):
+  return captureOnlyAllowedAttrs(getAllowedFilters(samplerObj), mapUnderInspection)
+
+def captureOnlyAllowedAttrs(objEditableAttrs, mapUnderInspection):
+  if not isCallableAttr(mapUnderInspection, '__getitem__'):
+    raise Exception('Map under inspection must have __getitem__ or support [...] method')
+
+  mappedValues = tuple()
+  for key in objEditableAttrs:
+    if key in mapUnderInspection: # Remember that queryContent is a dict so usually a O(1) op
+      mappedValues += ((key, mapUnderInspection[key],),)
+
+  return mappedValues
+
 def getTableObjByKey(tableKeyName, models=None):
   # Returns the table object given the tableKeyName(a string)
   # if it is exists in the DB, else None
@@ -274,8 +288,13 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
       print('Expecting a query body passed in as a dict')
       return errorID, changecount, duplicatescount
 
+    elif tableObj.objects.count() < 1: # Journey cut short if not even a single item exists
+      return errorID, changeCount, duplicatesCount
+
     else:
-      objMatch = tableObj.objects.filter(**queryParams)
+      allowedFilters = captureOnlyAllowedAttrsFromObj(tableObj.objects.first(), queryParams)
+      objMatch = tableObj.objects.filter(*allowedFilters)
+
       if not objMatch:
         print('Error: Could not find items that match query params', queryParams)
         return errorID, changecount, duplicatescount
@@ -423,7 +442,7 @@ def getAllowedFilters(tableProtoType):
 
     if userDefFields is None:
       objDict = tableProtoType.__dict__
-      userDefFields = [attr for attr in objDict if not attr.startswith('_')]
+      userDefFields = tuple(attr for attr in objDict if not attr.startswith('_'))
       __TABLE_CACHE__[tableProtoType] = userDefFields
 
     return userDefFields
@@ -486,8 +505,7 @@ def handleGET(getBody, tableObj, models=None):
   dbObjs = tableObjManager
   nFiltrations = 0
 
-  mappedValues = [(k, getBody.get(k, None)) for k in bodyAttrs]
-  allowedFilters = filter(lambda e : e[1], mappedValues)
+  allowedFilters = captureOnlyAllowedAttrs(bodyAttrs, getBody)
 
   selectAttrs = getBody.get(globVars.SELECT_KEY, None)
   selectKeys = None
@@ -512,8 +530,7 @@ def handleGET(getBody, tableObj, models=None):
 
   if limit is None: 
     limit=0
-    # Only postive limits accepted
-  elif not vFuncs.isUIntLike(limit):
+  elif not vFuncs.isUIntLike(limit): # Only postive limits accepted
     limit = globVars.THRESHOLD_LIMIT
   else:  
     limit = int(limit)

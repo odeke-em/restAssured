@@ -66,9 +66,18 @@ def blobHandler(request):
                     dict(count=0, msg='Specify at least one identifier')
                 ))
                 response.status_code = 400
+            elif uploader.models.Blob.objects.count() < 1:
+                response.write(json.dumps(
+                    dict(count=0, msg='No objects present yet')
+                ))
+                response.status_code = 404
             else:
-                print('updateContent here', updateContent)
-                matchedQuerySet = uploader.models.Blob.objects.filter(**queryContent)
+                # Use the first element to sample what attributes are allowed to be updated
+                mappedValues = crudAPI.captureOnlyAllowedAttrsFromObj(
+                    uploader.models.Blob.objects.first(), queryContent
+                )
+
+                matchedQuerySet = uploader.models.Blob.objects.filter(*mappedValues)
                 if matchedQuerySet:
                     if request.FILES and request.FILES.get('blob', None):
                         updateContent['content'] = request.FILES['blob']

@@ -10,8 +10,8 @@ libraries:
   version: latest
 
 handlers:
- - url: /core*
-   script: core/urls.py
-
  - url: /thebear*
-   script: thebear/urls.py
+   script: thebear.views
+
+ - url: /core/*
+   script: core.views
