@@ -1,9 +1,17 @@
 # webapp/app.yaml
 application: restoassured
 version: 1
-runtime: python
+runtime: python27
 api_version: 1
+threadsafe: no
+
+libraries:
+- name: django
+  version: latest
 
 handlers:
- - url: .*
-   script: thebear/views.py
+ - url: core/*
+   script: core/urls.py
+
+ - url: thebear/*
+   script: thebear/urls.py
