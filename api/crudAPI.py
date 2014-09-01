@@ -10,13 +10,12 @@ import time
 import copy
 import inspect
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
 
 import datetime
 
 import httpStatusCodes
-import validatorFunctions as vFuncs
 import globalVariables as globVars
+import validatorFunctions as vFuncs
 
 # Set to False during deployment
 DEVELOPER_MODE = True
@@ -181,7 +180,7 @@ def getForeignKeyElems(pyObj, parentMap={}, models=None):
   if pyObj.__hash__:
     hashOfObj = hash(pyObj)
     if hashOfObj in parentMap:
-        print('\033[47mAlready memoized %d\033[00m'%(pyObj.id))
+        # print('\033[47mAlready memoized %d\033[00m'%(pyObj.id))
         return None
 
     # Memoize it now
@@ -464,6 +463,7 @@ def getCurrentTime():
 ################################# CRUD handlers below ################################
 def handlePUT(request, tableProtoType):
   response = HttpResponse()
+  startTime = time.time()
 
   try:
     body = request.read()
@@ -473,7 +473,9 @@ def handlePUT(request, tableProtoType):
     print(ex)
 
   else:
-    results = updateTable(tableProtoType, bodyFromRequest=putBody, updateBool=True)
+    results = updateTable(
+        tableProtoType, bodyFromRequest=putBody, updateBool=True
+    )
 
     if results:
       changedID, changecount, duplicatescount = results
@@ -483,12 +485,15 @@ def handlePUT(request, tableProtoType):
     else:
       resultsDict = dict(id=-1)
 
+    addTypeInfo(responseDict)
+    responseDict['timeCost'] = time.time() - startTime
     response.write(json.dumps(resultsDict))
 
   return response
 
 def handleGET(getBody, tableObj, models=None):
   response = HttpResponse()
+  startTime = time.time()
   if not tableObj:
     response.status_code = 403
     response.status_message = "I need a table prototype"
@@ -600,16 +605,19 @@ def handleGET(getBody, tableObj, models=None):
   responseDict = dict(meta=metaDict, data=data)
 
   addTypeInfo(responseDict)
+  metaDict['timeCost'] = time.time() - startTime
+
   response.write(json.dumps(responseDict))
 
   return response
 
 def handlePOST(postBody, tableProtoType):
   response = HttpResponse()
+  startTime = time.time()
+
   results = updateTable(
     tableProtoType, bodyFromRequest=postBody, updateBool=False
   )
-
 
   resultsDict = dict()
 
@@ -621,12 +629,14 @@ def handlePOST(postBody, tableProtoType):
     response.status_code = httpStatusCodes.BAD_REQUEST  
 
   addTypeInfo(resultsDict)
+  resultsDict['timeCost'] = time.time() - startTime
   response.write(json.dumps(resultsDict))
 
   return response
 
 def handleDELETE(request, tableProtoType):
   response = HttpResponse()
+  startTime = time.time()
 
   try:
     body = request.read()
@@ -640,6 +650,7 @@ def handleDELETE(request, tableProtoType):
     )
 
     addTypeInfo(resultsDict)
+    resultsDict['timeCost'] = time.time() - startTime
     response.write(json.dumps(resultsDict))
 
   return response
