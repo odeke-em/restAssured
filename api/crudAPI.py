@@ -485,8 +485,8 @@ def handlePUT(request, tableProtoType):
     else:
       resultsDict = dict(id=-1)
 
-    addTypeInfo(responseDict)
-    responseDict['timeCost'] = time.time() - startTime
+    addTypeInfo(resultsDict)
+    resultsDict['timeCost'] = time.time() - startTime
     response.write(json.dumps(resultsDict))
 
   return response
