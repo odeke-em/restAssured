@@ -16,7 +16,7 @@ RestAssured  [![wercker status](https://app.wercker.com/status/ed37425ce64eb4c9f
 Embedding RestAssured in an application:
 ========================================
 
-  The official API can be found here: [resty](https://github.com/odeke-em/resty.git "Resty")
+  The official client application API can be found here: [resty](https://github.com/odeke-em/resty.git "Resty").
 
 
 Getting started:
