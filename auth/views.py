@@ -56,7 +56,6 @@ def requiredHttpMethodCheck(request, methodName):
 def credentialFieldCheck(
     credentials, expectedFields=['appName', 'username', 'password']
 ):
-    builder = {}
     for keyword in expectedFields:
         retr = credentials.get(keyword, None)
         if not retr:
