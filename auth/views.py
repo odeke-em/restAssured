@@ -93,17 +93,18 @@ def newUser(request):
         resp.status_code = httpStatusCodes.BAD_REQUEST
         resp.write(json.dumps({'msg': 'Could not create user. Try again later!'}))
 
-    djangoUserQuery = djangoAuth.models.User.objects.filter(username=reqBody['username'])
+    djangoUser = djangoAuth.authenticate(
+        username=reqBody['username'], password=reqBody['password']
+    )
 
     resp = HttpResponse()
-    if not djangoUserQuery:
-        
+    if not djangoUser:
         status, user = createDjangoUser(reqBody)
         if status != httpStatusCodes.OK:
             resp.status_code = httpStatusCodes.BAD_REQUEST
             return resp
     else:
-        user = djangoUserQuery[0]
+        user = djangoUser
 
     appName = reqBody['appName']
     authUserQuery = authModels.AuthUser.objects.filter(
