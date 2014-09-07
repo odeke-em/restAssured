@@ -6,13 +6,13 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^gcs/*', include('gcs.urls')),
-    # url(r'^comm/*', include('comm.urls')),
+    (r'^auth/*', include('auth.urls')),
+    (r'^core/*', include('core.urls')),
+    (r'^admin/', include(admin.site.urls)),
     (r'^thebear/*', include('thebear.urls')),
     (r'^uploader/*', include('uploader.urls')),
     (r'^jobTable/*', include('jobTable.urls')),
     (r'^chatServer/*', include('chatServer.urls')),
-    (r'^core/*', include('core.urls')),
-    (r'^admin/', include(admin.site.urls)),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

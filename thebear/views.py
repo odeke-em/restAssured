@@ -14,6 +14,10 @@ import crudAPI
 import thebear.models
 import theBearConstants
 
+def login(request):
+    print(request.user, dir(request.user))
+    return songHandler(request)
+
 # CSRF exemption only for development purposes
 @csrf_exempt
 def index(request):
