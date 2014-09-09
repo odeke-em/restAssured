@@ -54,7 +54,7 @@ def requiredHttpMethodCheck(request, methodName):
         return resp
 
 def credentialFieldCheck(
-    credentials, expectedFields=['appName', 'username', 'password']
+    credentials, expectedFields=['app_id', 'username', 'password']
 ):
     for keyword in expectedFields:
         retr = credentials.get(keyword, None)
@@ -105,9 +105,9 @@ def newUser(request):
     else:
         user = djangoUser
 
-    appName = reqBody['appName']
+    appId = reqBody['app_id']
     authUserQuery = authModels.AuthUser.objects.filter(
-        djangoUser_id=user.id, appName=appName
+        djangoUser_id=user.id, app_id=appId
     )
 
     response = HttpResponse()
@@ -117,7 +117,7 @@ def newUser(request):
     else:
         try:
             newAuthEntry = authModels.AuthUser(
-                djangoUser_id=user.id, appName=appName, meta=reqBody.get('meta', '')
+                djangoUser_id=user.id, app_id=appId, meta=reqBody.get('meta', '')
             )
             newAuthEntry.save()
         except Exception, e:
@@ -151,12 +151,12 @@ def login(request):
     
     credentials = request.GET
 
-    missingCredsResponse = credentialFieldCheck(credentials)
+    missingCredsResponse = credentialFieldCheck(credentials, ['accessId', 'username', 'password'])
     if missingCredsResponse:
         return missingCredsResponse
 
     response = HttpResponse()
-    appLookUp = authModels.AuthUser.objects.filter(appName=credentials['appName'])
+    appLookUp = authModels.App.objects.filter(_accessId=credentials['accessId'])
     if not appLookUp:
         response.status_code = 404
         response.write(json.dumps({'msg': 'No such app exists'}))
@@ -174,7 +174,9 @@ def login(request):
         response.write(json.dumps({'msg': 'No such user found'}))
         return response
 
-    appUserMatch = appLookUp.filter(djangoUser_id=authedUser.id)
+    appUserMatch = authModels.AuthUser.objects.filter(
+        djangoUser_id=authedUser.id, app_id=appLookUp[0].id
+    )
     if not appUserMatch:
         response.status_code = 404
         response.write(json.dumps({'msg': 'No such user found'}))
@@ -203,5 +205,8 @@ def logout(request):
         
     return response
 
-def authUserHandler(request):
-    return crudAPI.handleHTTPRequest(request, 'AuthUser', authModels)
+@csrf_exempt
+def appHandler(request):
+    return crudAPI.handleHTTPRequest( 
+        request, authConstants.APP_TABLE_KEY, authModels
+    )

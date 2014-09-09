@@ -270,10 +270,10 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
     return None # Handle this mishap later
 
   errorID = -1 
-  changecount = duplicatescount = 0
+  changeCount = duplicatesCount = 0
   if not isinstance(bodyFromRequest, dict):
     print("Arg 2 must be a dictionary")
-    return errorID, changecount, duplicatescount
+    return errorID, changeCount, duplicatesCount
 
   allowedKeys = None
   if not updateBool:
@@ -285,7 +285,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
     queryParams = bodyFromRequest.get('queryParams', None)
     if not isinstance(queryParams, dict):
       print('Expecting a query body passed in as a dict')
-      return errorID, changecount, duplicatescount
+      return errorID, changeCount, duplicatesCount
 
     elif tableObj.objects.count() < 1: # Journey cut short if not even a single item exists
       return errorID, changeCount, duplicatesCount
@@ -296,7 +296,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
 
       if not objMatch:
         print('Error: Could not find items that match query params', queryParams)
-        return errorID, changecount, duplicatescount
+        return errorID, changeCount, duplicatesCount
       else:
         allowedKeys = getAllowedFilters(objMatch[0])
         if objMatch.count() == 1: # Just one item can be individually inspected
@@ -324,20 +324,20 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
        if updateBool: 
           origValue = getattr(objectToChange, attr, None)
           if (attrValue == origValue): 
-             duplicatescount += 1
+             duplicatesCount += 1
              continue
 
        setattr(objectToChange, attr, attrValue)
-       changecount += 1
+       changeCount += 1
 
-    if not changecount: 
-      return objectToChange.id, changecount, duplicatescount
+    if not changeCount: 
+      return objectToChange.id, changeCount, duplicatesCount
     else:
       # Let's get that data written to memory
       savedBoolean = saveToMemory(objectToChange)
 
       if savedBoolean:
-        return objectToChange.id, changecount, duplicatescount
+        return objectToChange.id, changeCount, duplicatesCount
       else:
         return errorID, -1, -1
 
@@ -478,9 +478,9 @@ def handlePUT(request, tableProtoType):
     )
 
     if results:
-      changedID, changecount, duplicatescount = results
+      changedID, changeCount, duplicatesCount = results
       resultsDict = dict(
-        id=changedID, changecount=changecount, duplicatescount=duplicatescount
+        id=changedID, changeCount=changeCount, duplicatesCount=duplicatesCount
       )
     else:
       resultsDict = dict(id=-1)
@@ -622,9 +622,12 @@ def handlePOST(postBody, tableProtoType):
   resultsDict = dict()
 
   if results:
-    changedID, changecount, duplicatescount = results
-    resultsDict =\
-      dict(data=dict(id=changedID, changecount=changecount, duplicatescount=duplicatescount))
+    changedID, changeCount, duplicatesCount = results
+    resultsDict = {
+      'data': {
+        'id':changedID, 'changeCount': changeCount, 'duplicatesCount': duplicatesCount
+      }
+    }
   else:
     response.status_code = httpStatusCodes.BAD_REQUEST  
 
