@@ -2,6 +2,7 @@
 # Module to help with authentication
 
 import json
+import hmac
 import hashlib
 from django.http import HttpResponse
 import django.contrib.auth as djangoAuth
@@ -21,6 +22,7 @@ pyVersion = sys.hexversion//(1<<24)
 
 if pyVersion >= 3:
     byteFyArgs = {'encoding': 'utf-8'}
+byteFy = lambda byteableObj: bytes(byteableObj, **byteFyArgs)
 
 hashAlgoMemoizer = {}
 
@@ -41,7 +43,7 @@ def getHash(obj, hashAlgoName='sha256'):
             return httpStatusCodes.METHOD_NOT_ALLOWED, None
 
         # Mutate it and bytefy it
-        obj = bytes(str(obj), **byteFyArgs)
+        obj = byteFy(str(obj))
 
     return httpStatusCodes.OK, hashAlgo(obj).hexdigest()
    
@@ -82,19 +84,25 @@ def newUser(request):
     if notMethodCheckResponse:
         return notMethodCheckResponse
 
-    missingCredsResponse = credentialFieldCheck(request.POST)
-    if missingCredsResponse:
-        return missingCredsResponse
-
     status, reqBody = altParseRequestBody(request, 'POST')
     if status != httpStatusCodes.OK:
         resp = HttpResponse()
         resp.status_code = httpStatusCodes.BAD_REQUEST
-        resp.write(json.dumps({'msg': 'Could not create user. Try again later!'}))
+        resp.write(json.dumps({'msg': 'Failed to parse content from the request. Try again later!'}))
 
-    djangoUser = djangoAuth.authenticate(
-        username=reqBody['username'], password=reqBody['password']
-    )
+    missingCredsResponse = credentialFieldCheck(reqBody, ['appAccessId', 'username'])
+    if missingCredsResponse:
+        return missingCredsResponse
+
+    appAccessId = reqBody['appAccessId']
+    appLookUp = authModels.App.objects.filter(_accessId=appAccessId)
+
+    if not appLookUp:
+        response.status_code = 404
+        response.write(json.dumps({'msg': 'No such app exists'}))
+        return response
+
+    djangoUser = djangoAuth.models.User.objects.filter(username=reqBody['username'])
 
     resp = HttpResponse()
     if not djangoUser:
@@ -103,12 +111,9 @@ def newUser(request):
             resp.status_code = httpStatusCodes.BAD_REQUEST
             return resp
     else:
-        user = djangoUser
+        user = djangoUser[0]
 
-    appId = reqBody['app_id']
-    authUserQuery = authModels.AuthUser.objects.filter(
-        djangoUser_id=user.id, app_id=appId
-    )
+    authUserQuery = authModels.AuthUser.objects.filter(djangoUser_id=user.id, app_id=appLookUp[0].id)
 
     response = HttpResponse()
     if authUserQuery:
@@ -117,7 +122,7 @@ def newUser(request):
     else:
         try:
             newAuthEntry = authModels.AuthUser(
-                djangoUser_id=user.id, app_id=appId, meta=reqBody.get('meta', '')
+                djangoUser_id=user.id, app_id=appLookUp[0].id, meta=reqBody.get('meta', '')
             )
             newAuthEntry.save()
         except Exception, e:
@@ -132,10 +137,12 @@ def newUser(request):
 
 def createDjangoUser(userCredentials):
     # Allowed attributes
-    allowedAttrs = ['password', 'first_name', 'email', 'username']
+    allowedAttrs = ['first_name', 'last_name', 'email', 'username']
     createdB = {}
     for pickedKey in allowedAttrs:
         createdB[pickedKey] = userCredentials.get(pickedKey, '')
+
+    createdB['password'] = authModels.generateUUID().hex
 
     try:
         freshUser = djangoAuth.models.User.objects.create_user(**createdB)
@@ -144,6 +151,9 @@ def createDjangoUser(userCredentials):
     else:
         return httpStatusCodes.OK, freshUser
 
+def checkHMACValidity(userKey, msg, purportedResponse):
+    return hmac.HMAC(key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
+
 def login(request):
     notMethodCheckResponse = requiredHttpMethodCheck(request, 'GET')
     if notMethodCheckResponse:
@@ -151,12 +161,13 @@ def login(request):
     
     credentials = request.GET
 
-    missingCredsResponse = credentialFieldCheck(credentials, ['accessId', 'username', 'password'])
+    missingCredsResponse = credentialFieldCheck(credentials, ['appAccessId', 'accessId', 'signature'])
     if missingCredsResponse:
         return missingCredsResponse
 
     response = HttpResponse()
-    appLookUp = authModels.App.objects.filter(_accessId=credentials['accessId'])
+    appLookUp = authModels.App.objects.filter(_accessId=credentials['appAccessId'])
+
     if not appLookUp:
         response.status_code = 404
         response.write(json.dumps({'msg': 'No such app exists'}))
@@ -165,26 +176,39 @@ def login(request):
     # First step is logging them out
     logout(request)
 
-    authedUser = djangoAuth.authenticate(
-        username=credentials['username'], password=credentials['password']
-    )
-
-    if not authedUser:
+    userAccessId = credentials['accessId']
+    userLookUp = authModels.AuthUser.objects.filter(app_id=appLookUp[0].id, _accessId=userAccessId)
+    if not userLookUp:
         response.status_code = 404
-        response.write(json.dumps({'msg': 'No such user found'}))
+        response.write(json.dumps({'msg': 'Access denied. Check the accessId provided!'}))
         return response
 
-    appUserMatch = authModels.AuthUser.objects.filter(
-        djangoUser_id=authedUser.id, app_id=appLookUp[0].id
-    )
-    if not appUserMatch:
+    retrUser = userLookUp[0]
+
+    djangoUserResults = djangoAuth.models.User.objects.filter(id=retrUser.djangoUser_id)
+    if not djangoUserResults:
         response.status_code = 404
-        response.write(json.dumps({'msg': 'No such user found'}))
+        response.write(json.dumps({'msg': 'Access denied. No such user exists'}))
         return response
 
-    # Final authentication now
+    # Next step check out the validity of the hmac signature
+    isValidSignature = checkHMACValidity(
+        byteFy(retrUser._secretKey+userAccessId), credentials.get('message', ''), credentials['signature']
+    )
+
+    if not isValidSignature:
+        response.status_code = httpStatusCodes.UNAUTHORIZED
+        response.write(json.dumps({'msg': 'Purported response did not match our records'}))
+        return response
+
+    hdObj = djangoUserResults[0]
+    print('\033[92mIsValid Signature\033[00m')
+
+    # Finally logging them in.
     try:
-        djangoAuth.login(request, authedUser)
+        # TODO: Won't work yet since authenticate requires password and username yet
+        # we are only receiving accessId and appAccessId keys.
+        djangoAuth.login(request, djangoUserResults[0])
     except Exception, e:
         print(e)
         response.status_code = httpStatusCodes.BAD_REQUEST
