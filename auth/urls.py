@@ -8,6 +8,5 @@ urlpatterns = patterns('',
     url(r'^appHandler', views.appHandler, name='appHandler'),
     url(r'^passToLogin', views.loginByPassword, name='passToLogin'),
     url(r'^signToLogin', views.loginBySignature, name='signToLogin'),
-    url(r'^_getCSRFToken', views._getCSRFToken, name='_getCSRFToken'), # TODO: Depracate
     url(r'^authUserHandler', views.authUserHandler, name='authUserHandler'),
 )

@@ -9,11 +9,12 @@ import django.contrib.auth as djangoAuth
 
 from django.core.context_processors import csrf
 from django.shortcuts import render_to_response
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 
 # Setting up path for API source
 import sys, os
 sys.path.append("api")
+
 import crudAPI
 import httpStatusCodes
 
@@ -30,7 +31,7 @@ byteFy = lambda byteableObj: bytes(byteableObj, **byteFyArgs)
 
 hashAlgoMemoizer = {}
 
-def getHash(obj, hashAlgoName='sha256'):
+def __getHashDigest(obj, hashAlgoName='sha256'):
     if not obj:
         return httpStatusCodes.BAD_REQUEST, None
 
@@ -51,7 +52,7 @@ def getHash(obj, hashAlgoName='sha256'):
 
     return httpStatusCodes.OK, hashAlgo(obj).hexdigest()
    
-def requiredHttpMethodCheck(request, methodName):
+def _requiredHttpMethodCheck(request, methodName):
     method = request.method
     if method != methodName:
         resp = HttpResponse()
@@ -70,7 +71,7 @@ def credentialFieldCheck(
             response.status_code = httpStatusCodes.BAD_REQUEST
             return response
 
-def altParseRequestBody(request, methodName):
+def __altParseRequestBody(request, methodName):
     reqBody = getattr(request, methodName, None)
     if not reqBody:
         try:
@@ -84,11 +85,11 @@ def altParseRequestBody(request, methodName):
 
 @csrf_protect
 def newUser(request):
-    notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
+    notMethodCheckResponse = _requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
 
-    status, reqBody = altParseRequestBody(request, 'POST')
+    status, reqBody = __altParseRequestBody(request, 'POST')
     if status != httpStatusCodes.OK:
         resp = HttpResponse()
         resp.status_code = httpStatusCodes.BAD_REQUEST
@@ -158,7 +159,8 @@ def createDjangoUser(userCredentials):
 def checkHMACValidity(userKey, msg, purportedResponse):
     return hmac.HMAC(key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
 
-@csrf_protect
+@csrf_exempt
+@ensure_csrf_cookie
 def loginByPassword(request):
     '''
         This is the traditional login method
@@ -168,11 +170,11 @@ def loginByPassword(request):
             + password: A non-empty string.
             + username: A non-empty string.
     '''
-    notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
+    notMethodCheckResponse = _requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
      
-    status, bodyParseResponse = altParseRequestBody(request, 'POST')
+    status, bodyParseResponse = __altParseRequestBody(request, 'POST')
     response = HttpResponse()
 
     if status != httpStatusCodes.OK:
@@ -232,6 +234,8 @@ def loginByPassword(request):
 
     return response
 
+@csrf_exempt
+@ensure_csrf_cookie
 def loginBySignature(request):
     '''
         Takes in a digest to be verified, that was purportedly obtained by signing with
@@ -243,13 +247,20 @@ def loginBySignature(request):
         Note: Does not yet attach the user to the request since so far authenticate(...) requires
               password and username, yet this function doesn't even require usernames nor passwords
     '''
-    notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
+    notMethodCheckResponse = _requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
-    
-    status, bodyParseResponse = altParseRequestBody(request, 'POST')
+     
+    status, bodyParseResponse = __altParseRequestBody(request, 'POST')
+    response = HttpResponse()
+
     if status != httpStatusCodes.OK:
-        return bodyParseResponse
+        response.status_code = httpStatusCodes.BAD_REQUEST
+        response.write(json.dumps({
+            'msg': 'Failed to parse content from the request. Try again later!'
+        }))
+
+        return response
 
     credentials = bodyParseResponse
 
@@ -330,11 +341,3 @@ def authUserHandler(request):
     return crudAPI.handleHTTPRequest(
         request, authConstants.AUTH_USER_KEY, authModels    
     )
-
-def _getCSRFToken(request):
-    '''
-        Dangerous method that should be moved to render content right before initial login
-    '''
-    content = {}
-    content.update(csrf(request))
-    return render_to_response('csrfAcquire.html', content)
