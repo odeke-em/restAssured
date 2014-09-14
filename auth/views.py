@@ -6,7 +6,10 @@ import hmac
 import hashlib
 from django.http import HttpResponse
 import django.contrib.auth as djangoAuth
-from django.views.decorators.csrf import csrf_exempt
+
+from django.core.context_processors import csrf
+from django.shortcuts import render_to_response
+from django.views.decorators.csrf import csrf_protect
 
 # Setting up path for API source
 import sys, os
@@ -79,7 +82,7 @@ def altParseRequestBody(request, methodName):
 
     return httpStatusCodes.OK, reqBody
 
-@csrf_exempt
+@csrf_protect
 def newUser(request):
     notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
@@ -155,6 +158,7 @@ def createDjangoUser(userCredentials):
 def checkHMACValidity(userKey, msg, purportedResponse):
     return hmac.HMAC(key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
 
+@csrf_protect
 def loginByPassword(request):
     '''
         This is the traditional login method
@@ -167,14 +171,27 @@ def loginByPassword(request):
     notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
-    
-    credentials = altParseRequestBody(request, 'POST')
+     
+    status, bodyParseResponse = altParseRequestBody(request, 'POST')
+    response = HttpResponse()
 
-    missingCredsResponse = credentialFieldCheck(credentials, ['appAccessId', 'accessId', 'password', 'username'])
+    if status != httpStatusCodes.OK:
+        response.status_code = httpStatusCodes.BAD_REQUEST
+        response.write(json.dumps({
+            'msg': 'Failed to parse content from the request. Try again later!'
+        }))
+
+        return response
+
+    credentials = bodyParseResponse
+
+    missingCredsResponse = credentialFieldCheck(credentials, [
+        'appAccessId', 'accessId', 'password', 'username'
+    ])
+
     if missingCredsResponse:
         return missingCredsResponse
 
-    response = HttpResponse()
     appLookUp = authModels.App.objects.filter(_accessId=credentials['appAccessId'])
 
     if not appLookUp:
@@ -185,7 +202,9 @@ def loginByPassword(request):
     # Log them out to begin with
     logout(request)
 
-    djangoUser = djangoAuth.authenticate(username=credentials['username'], password=credentials['password'])
+    djangoUser = djangoAuth.authenticate(
+        username=credentials['username'], password=credentials['password']
+    )
     if not djangoUser:
         response.status_code = 404
         response.write(json.dumps({'msg': 'Access denied. Check the provided credentials!'}))
@@ -193,7 +212,7 @@ def loginByPassword(request):
 
     headApp = appLookUp[0]
     appUser = authModels.AuthUser.objects.filter(
-        app_id=headApp._id, djangoUser_id=djangoUser._id, accessId=credentials['accessId']
+        app_id=headApp.id, djangoUser_id=djangoUser.id, _accessId=credentials['accessId']
     )
 
     if not appUser:
@@ -207,6 +226,7 @@ def loginByPassword(request):
         print(e)
         response.status_code = httpStatusCodes.BAD_REQUEST
     else:
+        csrf(request)
         response.status_code = httpStatusCodes.OK
         response.write(json.dumps({'msg': 'Success logging in'})) 
 
@@ -221,15 +241,21 @@ def loginBySignature(request):
             + accessId: The id assigned to the user when they signed up to the app.
             + signature: The digest to be verified after signing with the user's private key.
         Note: Does not yet attach the user to the request since so far authenticate(...) requires
-              password and username to be sent in, but this function doesn't even require usernames nor passwords
+              password and username, yet this function doesn't even require usernames nor passwords
     '''
     notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
     
-    credentials = altParseRequestBody(request, 'POST')
+    status, bodyParseResponse = altParseRequestBody(request, 'POST')
+    if status != httpStatusCodes.OK:
+        return bodyParseResponse
 
-    missingCredsResponse = credentialFieldCheck(credentials, ['appAccessId', 'accessId', 'signature'])
+    credentials = bodyParseResponse
+
+    missingCredsResponse = credentialFieldCheck(
+        credentials, ['appAccessId', 'accessId', 'signature']
+    )
     if missingCredsResponse:
         return missingCredsResponse
 
@@ -271,11 +297,13 @@ def loginBySignature(request):
 
     # TODO:  Associated the user with the request by .authenticate(**credentials)
 
+    csrf(request)
     response.status_code = httpStatusCodes.OK
     response.write(json.dumps({'msg': 'Success logging in'})) 
 
     return response
 
+@csrf_protect
 def logout(request):
     '''
         Performs the reverse of logging in ie disassociates a user from the request, 
@@ -283,7 +311,7 @@ def logout(request):
     '''
     successfulLogout = False
     if request.user.is_authenticated():
-        request.user.logout()
+        djangoAuth.logout(request)
         successfulLogout = True
 
     response = HttpResponse()
@@ -291,8 +319,22 @@ def logout(request):
         
     return response
 
-@csrf_exempt
+@csrf_protect
 def appHandler(request):
     return crudAPI.handleHTTPRequest( 
         request, authConstants.APP_TABLE_KEY, authModels
     )
+
+@csrf_protect
+def authUserHandler(request):
+    return crudAPI.handleHTTPRequest(
+        request, authConstants.AUTH_USER_KEY, authModels    
+    )
+
+def _getCSRFToken(request):
+    '''
+        Dangerous method that should be moved to render content right before initial login
+    '''
+    content = {}
+    content.update(csrf(request))
+    return render_to_response('csrfAcquire.html', content)
