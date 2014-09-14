@@ -22,6 +22,7 @@ pyVersion = sys.hexversion//(1<<24)
 
 if pyVersion >= 3:
     byteFyArgs = {'encoding': 'utf-8'}
+
 byteFy = lambda byteableObj: bytes(byteableObj, **byteFyArgs)
 
 hashAlgoMemoizer = {}
@@ -154,12 +155,79 @@ def createDjangoUser(userCredentials):
 def checkHMACValidity(userKey, msg, purportedResponse):
     return hmac.HMAC(key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
 
-def login(request):
-    notMethodCheckResponse = requiredHttpMethodCheck(request, 'GET')
+def loginByPassword(request):
+    '''
+        This is the traditional login method
+        Requires credentials:
+            + appAccessId: The id provided to the app.
+            + accessId: The id assigned to the user when they signed up to the app.
+            + password: A non-empty string.
+            + username: A non-empty string.
+    '''
+    notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
     
-    credentials = request.GET
+    credentials = altParseRequestBody(request, 'POST')
+
+    missingCredsResponse = credentialFieldCheck(credentials, ['appAccessId', 'accessId', 'password', 'username'])
+    if missingCredsResponse:
+        return missingCredsResponse
+
+    response = HttpResponse()
+    appLookUp = authModels.App.objects.filter(_accessId=credentials['appAccessId'])
+
+    if not appLookUp:
+        response.status_code = 404
+        response.write(json.dumps({'msg': 'No such app exists'}))
+        return response
+
+    # Log them out to begin with
+    logout(request)
+
+    djangoUser = djangoAuth.authenticate(username=credentials['username'], password=credentials['password'])
+    if not djangoUser:
+        response.status_code = 404
+        response.write(json.dumps({'msg': 'Access denied. Check the provided credentials!'}))
+        return response
+
+    headApp = appLookUp[0]
+    appUser = authModels.AuthUser.objects.filter(
+        app_id=headApp._id, djangoUser_id=djangoUser._id, accessId=credentials['accessId']
+    )
+
+    if not appUser:
+        response.status_code = 404
+        response.write(json.dumps({'msg': 'Access denied. Check the provided credentials!'}))
+        return response
+
+    try:
+        djangoAuth.login(request, djangoUser)
+    exception Exception, e:
+        print(e)
+        response.status_code = httpStatusCodes.BAD_REQUEST
+    else:
+        response.status_code = httpStatusCodes.OK
+        response.write(json.dumps({'msg': 'Success logging in'})) 
+
+    return response
+
+def loginBySignature(request):
+    '''
+        Takes in a digest to be verified, that was purportedly obtained by signing with
+        the user's private credentials on the client side. Verifies if the signatures match up
+        Requires credentials:
+            + appAccessId: The id provided to the app.
+            + accessId: The id assigned to the user when they signed up to the app.
+            + signature: The digest to be verified after signing with the user's private key.
+        Note: Does not yet attach the user to the request since so far authenticate(...) requires
+              password and username to be sent in, but this function doesn't even require usernames nor passwords
+    '''
+    notMethodCheckResponse = requiredHttpMethodCheck(request, 'POST')
+    if notMethodCheckResponse:
+        return notMethodCheckResponse
+    
+    credentials = altParseRequestBody(request, 'POST')
 
     missingCredsResponse = credentialFieldCheck(credentials, ['appAccessId', 'accessId', 'signature'])
     if missingCredsResponse:
@@ -172,9 +240,6 @@ def login(request):
         response.status_code = 404
         response.write(json.dumps({'msg': 'No such app exists'}))
         return response
-
-    # First step is logging them out
-    logout(request)
 
     userAccessId = credentials['accessId']
     userLookUp = authModels.AuthUser.objects.filter(app_id=appLookUp[0].id, _accessId=userAccessId)
@@ -191,34 +256,31 @@ def login(request):
         response.write(json.dumps({'msg': 'Access denied. No such user exists'}))
         return response
 
-    # Next step check out the validity of the hmac signature
+    # Next step: Check out the validity of the hmac signature
     isValidSignature = checkHMACValidity(
         byteFy(retrUser._secretKey+userAccessId), credentials.get('message', ''), credentials['signature']
     )
 
     if not isValidSignature:
+        print('\033[92mInvalid Signature\033[00m')
         response.status_code = httpStatusCodes.UNAUTHORIZED
         response.write(json.dumps({'msg': 'Purported response did not match our records'}))
         return response
 
-    hdObj = djangoUserResults[0]
     print('\033[92mIsValid Signature\033[00m')
 
-    # Finally logging them in.
-    try:
-        # TODO: Won't work yet since authenticate requires password and username yet
-        # we are only receiving accessId and appAccessId keys.
-        djangoAuth.login(request, djangoUserResults[0])
-    except Exception, e:
-        print(e)
-        response.status_code = httpStatusCodes.BAD_REQUEST
-    else:
-        response.status_code = httpStatusCodes.OK
-        response.write(json.dumps({'msg': 'Success logging in'})) 
+    # TODO:  Associated the user with the request by .authenticate(**credentials)
+
+    response.status_code = httpStatusCodes.OK
+    response.write(json.dumps({'msg': 'Success logging in'})) 
 
     return response
 
 def logout(request):
+    '''
+        Performs the reverse of logging in ie disassociates a user from the request, 
+        but only if they are authenticated and associated to the incoming request.
+    '''
     successfulLogout = False
     if request.user.is_authenticated():
         request.user.logout()

@@ -1,3 +1,5 @@
+# Author: Emmanuel Odeke <odeke@ualberta.ca>
+
 import sys
 import time
 import uuid
@@ -8,11 +10,6 @@ import django.contrib.auth as djangoAuth
 
 # Local module
 import authConstants
-
-pyVersion = sys.hexversion//(1<<24)
-encodingKwargs = {}
-if pyVersion >= 3:
-    encodingKwargs = {'encoding': 'utf-8'}
 
 generateUUID = uuid.uuid4
 
