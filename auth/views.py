@@ -203,7 +203,7 @@ def loginByPassword(request):
 
     try:
         djangoAuth.login(request, djangoUser)
-    exception Exception, e:
+    except Exception, e:
         print(e)
         response.status_code = httpStatusCodes.BAD_REQUEST
     else:
