@@ -12,7 +12,7 @@ from django.shortcuts import render_to_response
 from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
 
 # Setting up path for API source
-import sys, os
+import sys
 sys.path.append("api")
 
 import crudAPI
@@ -20,14 +20,6 @@ import httpStatusCodes
 
 import auth.models as authModels
 import auth.authConstants as authConstants
-
-byteFyArgs = {}
-pyVersion = sys.hexversion//(1<<24)
-
-if pyVersion >= 3:
-    byteFyArgs = {'encoding': 'utf-8'}
-
-byteFy = lambda byteableObj: bytes(byteableObj, **byteFyArgs)
 
 hashAlgoMemoizer = {}
 
@@ -48,7 +40,7 @@ def __getHashDigest(obj, hashAlgoName='sha256'):
             return httpStatusCodes.METHOD_NOT_ALLOWED, None
 
         # Mutate it and bytefy it
-        obj = byteFy(str(obj))
+        obj = crudAPI.byteFy(str(obj))
 
     return httpStatusCodes.OK, hashAlgo(obj).hexdigest()
    
@@ -71,29 +63,18 @@ def credentialFieldCheck(
             response.status_code = httpStatusCodes.BAD_REQUEST
             return response
 
-def __altParseRequestBody(request, methodName):
-    reqBody = getattr(request, methodName, None)
-    if not reqBody:
-        try:
-            reqBody = json.loads(
-                request.read() if pyVersion < 3 else request.read().decode()
-            )
-        except Exception, e:
-            return httpStatusCodes.INTERNAL_SERVER_ERROR, e
-
-    return httpStatusCodes.OK, reqBody
-
 @csrf_protect
 def newUser(request):
     notMethodCheckResponse = _requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
         return notMethodCheckResponse
 
-    status, reqBody = __altParseRequestBody(request, 'POST')
+    status, reqBody = crudAPI._altParseRequestBody(request, 'POST')
     if status != httpStatusCodes.OK:
         resp = HttpResponse()
         resp.status_code = httpStatusCodes.BAD_REQUEST
-        resp.write(json.dumps({'msg': 'Failed to parse content from the request. Try again later!'}))
+        resp.write(json.dumps({
+            'msg': 'Failed to parse content from the request. Try again later!'}))
 
     missingCredsResponse = credentialFieldCheck(reqBody, ['appAccessId', 'username'])
     if missingCredsResponse:
@@ -118,7 +99,8 @@ def newUser(request):
     else:
         user = djangoUser[0]
 
-    authUserQuery = authModels.AuthUser.objects.filter(djangoUser_id=user.id, app_id=appLookUp[0].id)
+    authUserQuery = authModels.AuthUser.objects.filter(
+                        djangoUser_id=user.id, app_id=appLookUp[0].id)
 
     response = HttpResponse()
     if authUserQuery:
@@ -157,9 +139,10 @@ def createDjangoUser(userCredentials):
         return httpStatusCodes.OK, freshUser
 
 def checkHMACValidity(userKey, msg, purportedResponse):
-    return hmac.HMAC(key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
+    return hmac.HMAC(
+        key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
 
-@csrf_exempt
+@csrf_protect
 @ensure_csrf_cookie
 def loginByPassword(request):
     '''
@@ -174,7 +157,7 @@ def loginByPassword(request):
     if notMethodCheckResponse:
         return notMethodCheckResponse
      
-    status, bodyParseResponse = __altParseRequestBody(request, 'POST')
+    status, bodyParseResponse = crudAPI._altParseRequestBody(request, 'POST')
     response = HttpResponse()
 
     if status != httpStatusCodes.OK:
@@ -251,7 +234,7 @@ def loginBySignature(request):
     if notMethodCheckResponse:
         return notMethodCheckResponse
      
-    status, bodyParseResponse = __altParseRequestBody(request, 'POST')
+    status, bodyParseResponse = crudAPI._altParseRequestBody(request, 'POST')
     response = HttpResponse()
 
     if status != httpStatusCodes.OK:
@@ -295,7 +278,7 @@ def loginBySignature(request):
 
     # Next step: Check out the validity of the hmac signature
     isValidSignature = checkHMACValidity(
-        byteFy(retrUser._secretKey+userAccessId), credentials.get('message', ''), credentials['signature']
+        crudAPI.byteFy(retrUser._secretKey+userAccessId), credentials.get('message', ''), credentials['signature']
     )
 
     if not isValidSignature:

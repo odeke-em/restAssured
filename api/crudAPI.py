@@ -5,13 +5,13 @@
 # API to handle CRUD for any app whose models have been defined
 
 import re
+import sys
 import json
 import time
 import copy
 import inspect
-from django.http import HttpResponse
-
 import datetime
+from django.http import HttpResponse
 
 import httpStatusCodes
 import globalVariables as globVars
@@ -49,6 +49,14 @@ sortKeyCompile = re.compile(
     r"([^\s]*)\s*%s$"%(globVars.REVERSE_KEY), re.UNICODE|re.IGNORECASE
 )
 
+byteFyArgs = {}
+pyVersion = sys.hexversion//(1<<24)
+
+if pyVersion >= 3:
+    byteFyArgs = {'encoding': 'utf-8'}
+
+byteFy = lambda byteableObj: bytes(byteableObj, **byteFyArgs)
+
 def translateSortKey(sortKey):
   if not sortKey:
     # If no sort parameter is passed in, sort by the newest reverse id
@@ -62,7 +70,19 @@ def translateSortKey(sortKey):
     return sortKeySearch.groups(1)[0], True
   else:
     return sortKey, False
-  
+ 
+def _altParseRequestBody(request, methodName):
+  reqBody = getattr(request, methodName, None)
+  if not reqBody:
+    try:
+      reqBody = json.loads(
+        request.read() if pyVersion < 3 else request.read().decode()
+      )
+    except Exception, e:
+      return httpStatusCodes.INTERNAL_SERVER_ERROR, e
+
+  return httpStatusCodes.OK, reqBody
+ 
 def isSerializable(pyObj):
   # Elements serializable by default allow an iterator to be created from them
   try: iter(pyObj)
