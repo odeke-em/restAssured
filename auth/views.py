@@ -64,6 +64,7 @@ def credentialFieldCheck(
             return response
 
 @csrf_protect
+@ensure_csrf_cookie
 def newUser(request):
     notMethodCheckResponse = _requiredHttpMethodCheck(request, 'POST')
     if notMethodCheckResponse:
@@ -75,8 +76,12 @@ def newUser(request):
         resp.status_code = httpStatusCodes.BAD_REQUEST
         resp.write(json.dumps({
             'msg': 'Failed to parse content from the request. Try again later!'}))
+        return resp
 
-    missingCredsResponse = credentialFieldCheck(reqBody, ['appAccessId', 'username'])
+
+    missingCredsResponse = credentialFieldCheck(
+                                        reqBody, ['appAccessId', 'username'])
+
     if missingCredsResponse:
         return missingCredsResponse
 
@@ -217,7 +222,7 @@ def loginByPassword(request):
 
     return response
 
-@csrf_exempt
+@csrf_protect
 @ensure_csrf_cookie
 def loginBySignature(request):
     '''
@@ -314,13 +319,18 @@ def logout(request):
     return response
 
 @csrf_protect
+@ensure_csrf_cookie
 def appHandler(request):
     return crudAPI.handleHTTPRequest( 
         request, authConstants.APP_TABLE_KEY, authModels
     )
 
 @csrf_protect
+@ensure_csrf_cookie
 def authUserHandler(request):
+    if request.method == 'POST':
+        return newUser(request)
+
     return crudAPI.handleHTTPRequest(
         request, authConstants.AUTH_USER_KEY, authModels    
     )
