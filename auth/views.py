@@ -89,7 +89,7 @@ def newUser(request):
     appLookUp = authModels.App.objects.filter(_accessId=appAccessId)
 
     if not appLookUp:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.NOT_FOUND
         response.write(json.dumps({'msg': 'No such app exists'}))
         return response
 
@@ -99,7 +99,7 @@ def newUser(request):
     if not djangoUser:
         status, user = createDjangoUser(reqBody)
         if status != httpStatusCodes.OK:
-            resp.status_code = httpStatusCodes.BAD_REQUEST
+            resp.status_code = status
             return resp
     else:
         user = djangoUser[0]
@@ -145,7 +145,8 @@ def createDjangoUser(userCredentials):
 
 def checkHMACValidity(userKey, msg, purportedResponse):
     return hmac.HMAC(
-        key=userKey, msg=msg, digestmod=hashlib.sha256).hexdigest() == purportedResponse
+        key=userKey, msg=msg, digestmod=hashlib.sha256
+    ).hexdigest() == purportedResponse
 
 @csrf_protect
 @ensure_csrf_cookie
@@ -185,7 +186,7 @@ def loginByPassword(request):
     appLookUp = authModels.App.objects.filter(_accessId=credentials['appAccessId'])
 
     if not appLookUp:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.NOT_FOUND
         response.write(json.dumps({'msg': 'No such app exists'}))
         return response
 
@@ -196,7 +197,7 @@ def loginByPassword(request):
         username=credentials['username'], password=credentials['password']
     )
     if not djangoUser:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.FORBIDDEN
         response.write(json.dumps({'msg': 'Access denied. Check the provided credentials!'}))
         return response
 
@@ -206,7 +207,7 @@ def loginByPassword(request):
     )
 
     if not appUser:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.FORBIDDEN
         response.write(json.dumps({'msg': 'Access denied. Check the provided credentials!'}))
         return response
 
@@ -262,14 +263,15 @@ def loginBySignature(request):
     appLookUp = authModels.App.objects.filter(_accessId=credentials['appAccessId'])
 
     if not appLookUp:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.NOT_FOUND
         response.write(json.dumps({'msg': 'No such app exists'}))
         return response
 
     userAccessId = credentials['accessId']
-    userLookUp = authModels.AuthUser.objects.filter(app_id=appLookUp[0].id, _accessId=userAccessId)
+    userLookUp = authModels.AuthUser.objects.filter(
+                                    app_id=appLookUp[0].id, _accessId=userAccessId)
     if not userLookUp:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.FORBIDDEN
         response.write(json.dumps({'msg': 'Access denied. Check the accessId provided!'}))
         return response
 
@@ -277,7 +279,7 @@ def loginBySignature(request):
 
     djangoUserResults = djangoAuth.models.User.objects.filter(id=retrUser.djangoUser_id)
     if not djangoUserResults:
-        response.status_code = 404
+        response.status_code = httpStatusCodes.NOT_FOUND
         response.write(json.dumps({'msg': 'Access denied. No such user exists'}))
         return response
 

@@ -73,12 +73,13 @@ def translateSortKey(sortKey):
  
 def _altParseRequestBody(request, methodName):
   reqBody = getattr(request, methodName, None)
-  if not reqBody:
+  if reqBody is None:
     try:
       reqBody = json.loads(
         request.read() if pyVersion < 3 else request.read().decode()
       )
     except Exception, e:
+      print(e)
       return httpStatusCodes.INTERNAL_SERVER_ERROR, e
 
   return httpStatusCodes.OK, reqBody
@@ -421,37 +422,44 @@ def saveToMemory(newObj):
   return savedBool
 
 def handleHTTPRequest(request, tableName, models):
+  startTime = time.time()
+
   requestMethod = request.method
 
-  tableProtoType = getTableByKey(tableName, models)
+  resultsDict = None
+  response = HttpResponse()
+  statusCode = httpStatusCodes.BAD_REQUEST
 
-  if requestMethod == globVars.GET_KEY:
-    getBody = request.GET
-    return handleGET(getBody, tableProtoType, models)
-
-  elif requestMethod == globVars.POST_KEY:
-    postBody = request.POST
-    if not postBody:
-      try:
-        loaded = json.loads(request.read())
-      except Exception, ex:
-        print(ex)
-      else:
-        postBody = loaded 
-
-    return handlePOST(postBody, tableProtoType)
-
-  elif requestMethod == globVars.DELETE_KEY:
-    return handleDELETE(request, tableProtoType)
-
-  elif requestMethod == globVars.PUT_KEY:
-    return handlePUT(request, tableProtoType)
- 
+  parseStatus, content = _altParseRequestBody(request, requestMethod)
+  if parseStatus != httpStatusCodes.OK:
+    statusCode = httpStatusCodes.BAD_REQUEST  
+    resultsDict = {'msg': 'No body could be parsed'}
   else:
-    errorResponse = HttpResponse("Unknown method") 
-    errorResponse.status_code = httpStatusCodes.METHOD_NOT_ALLOWED
-  
-    return errorResponse
+    tableProtoType = getTableByKey(tableName, models)
+
+    if requestMethod == globVars.GET_KEY:
+      statusCode, resultsDict = handleGET(content, tableProtoType, models)
+
+    elif requestMethod == globVars.POST_KEY:
+      statusCode, resultsDict = handlePOST(content, tableProtoType)
+
+    elif requestMethod == globVars.DELETE_KEY:
+      statusCode, resultsDict = handleDELETE(content, tableProtoType)
+
+    elif requestMethod == globVars.PUT_KEY:
+      statusCode, resultsDict = handlePUT(content, tableProtoType)
+ 
+    else:
+      resultsDict = {'msg': 'Unknown method'}
+      statusCode = httpStatusCodes.METHOD_NOT_ALLOWED
+
+  addTypeInfo(resultsDict)
+  response.status_code = statusCode
+  resultsDict['timeCost'] = time.time() - startTime
+
+  response.write(json.dumps(resultsDict))
+
+  return response
 
 def getAllowedFilters(tableProtoType):
   if not tableProtoType:
@@ -481,44 +489,24 @@ def getCurrentTime():
   return time.time()
 
 ################################# CRUD handlers below ################################
-def handlePUT(request, tableProtoType):
-  response = HttpResponse()
-  startTime = time.time()
-
-  try:
-    body = request.read()
-    putBody = json.loads(body)
-
-  except Exception, ex:
-    print(ex)
-
-  else:
-    results = updateTable(
+def handlePUT(putBody, tableProtoType):
+  results = updateTable(
         tableProtoType, bodyFromRequest=putBody, updateBool=True
-    )
+  )
 
-    if results:
-      changedID, changeCount, duplicatesCount = results
-      resultsDict = dict(
+  if results:
+    changedID, changeCount, duplicatesCount = results
+
+    return httpStatusCodes.OK, dict(
         id=changedID, changeCount=changeCount, duplicatesCount=duplicatesCount
-      )
-    else:
-      resultsDict = dict(id=-1)
-
-    addTypeInfo(resultsDict)
-    resultsDict['timeCost'] = time.time() - startTime
-    response.write(json.dumps(resultsDict))
-
-  return response
+    )
+  else:
+    return httpStatusCodes.BAD_REQUEST, dict(id=-1)
 
 def handleGET(getBody, tableObj, models=None):
-  response = HttpResponse()
-  startTime = time.time()
   if not tableObj:
-    response.status_code = 403
-    response.status_message = "I need a table prototype"
     print("No results")
-    return response
+    return httpStatusCodes.NOT_FOUND, {'msg': "I need a table prototype"}
 
   tableObjManager = tableObj.objects
   objCount = tableObjManager.count()
@@ -622,19 +610,10 @@ def handleGET(getBody, tableObj, models=None):
   if selectKeys:
     metaDict[globVars.SELECT_KEY] = selectKeys
 
-  responseDict = dict(meta=metaDict, data=data)
-
-  addTypeInfo(responseDict)
-  metaDict['timeCost'] = time.time() - startTime
-
-  response.write(json.dumps(responseDict))
-
-  return response
+  return httpStatusCodes.OK, dict(meta=metaDict, data=data)
 
 def handlePOST(postBody, tableProtoType):
-  response = HttpResponse()
-  startTime = time.time()
-
+  statusCode = httpStatusCodes.BAD_REQUEST
   results = updateTable(
     tableProtoType, bodyFromRequest=postBody, updateBool=False
   )
@@ -648,32 +627,9 @@ def handlePOST(postBody, tableProtoType):
         'id':changedID, 'changeCount': changeCount, 'duplicatesCount': duplicatesCount
       }
     }
-  else:
-    response.status_code = httpStatusCodes.BAD_REQUEST  
+    statusCode = httpStatusCodes.OK
 
-  addTypeInfo(resultsDict)
-  resultsDict['timeCost'] = time.time() - startTime
-  response.write(json.dumps(resultsDict))
+  return statusCode, resultsDict
 
-  return response
-
-def handleDELETE(request, tableProtoType):
-  response = HttpResponse()
-  startTime = time.time()
-
-  try:
-    body = request.read()
-    deleteBody = json.loads(body)
-  except Exception, ex:
-    print(ex, 'During delete')
-    response.satus_code = httpStatusCodes.INTERNAL_SERVER_ERROR
-  else:
-    resultsDict = dict(
-        data=deleteByAttrs(tableProtoType, deleteBody)
-    )
-
-    addTypeInfo(resultsDict)
-    resultsDict['timeCost'] = time.time() - startTime
-    response.write(json.dumps(resultsDict))
-
-  return response
+def handleDELETE(deleteBody, tableProtoType):
+  return httpStatusCode.OK, dict(data=deleteByAttrs(tableProtoType, deleteBody))
