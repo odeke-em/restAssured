@@ -13,7 +13,9 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 # Setting up path for API source
 import sys, os, json
 sys.path.append("api")
+
 import crudAPI
+import httpStatusCodes
 
 import uploader.models
 import uploaderConstants
@@ -40,7 +42,9 @@ def blobHandler(request):
             stringifyedContent =dict((str(k), str(v)) for k,v in bodyContent.items())
             stringifyedContent['size'] = request.FILES['blob'].size
             print('size of file', request.FILES['blob'].size)
-            createdFile = uploader.models.Blob(content=request.FILES['blob'], **stringifyedContent)
+            createdFile = uploader.models.Blob(
+                    content=request.FILES['blob'], **stringifyedContent)
+
             print('createdFile', createdFile)
             response = HttpResponse()
             try:
@@ -49,7 +53,7 @@ def blobHandler(request):
                 response.status_message = 'Successful upload'
             except Exception, e:
                 print('exception', e)
-                response.status_code = 500
+                response.status_code = httpStatusCodes.INTERNAL_SERVER_ERROR
                 response.status_message = 'Exception during uploading'
 
             return response
@@ -57,37 +61,41 @@ def blobHandler(request):
         # TODO: Match up the query and update keys with those in the API
         response = HttpResponse()
         try:
-            print(dir(request))
-            content = request.GET # Get content from request.read()
-            queryContent = content.get('queryContent', {}) 
-            updateContent = content.get('updateContent', {})
-            if not queryContent:
+            queryBody = request.GET
+            updateBody = request.POST
+
+            if not queryBody:
                 response.write(json.dumps(
                     dict(count=0, msg='Specify at least one identifier')
                 ))
-                response.status_code = 400
+                response.status_code = httpStatusCodes.BAD_REQUEST
             elif uploader.models.Blob.objects.count() < 1:
                 response.write(json.dumps(
                     dict(count=0, msg='No objects present yet')
                 ))
-                response.status_code = 404
+                response.status_code = httpStatusCodes.NOT_FOUND
             else:
-                # Use the first element to sample what attributes are allowed to be updated
+                # Use first element to sample what attributes are allowed to be updated
                 mappedValues = crudAPI.captureOnlyAllowedAttrsFromObj(
-                    uploader.models.Blob.objects.first(), queryContent
+                    uploader.models.Blob.objects.first(), queryBody
                 )
 
                 matchedQuerySet = uploader.models.Blob.objects.filter(*mappedValues)
-                if matchedQuerySet:
-                    if request.FILES and request.FILES.get('blob', None):
-                        updateContent['content'] = request.FILES['blob']
+                if not matchedQuerySet:
+                    response.status_code = httpStatusCodes.NOT_FOUND
+                else:
+                    if request.FILES:
+                        blob = request.FILES.get('blob', None)
+                        if blob is not None:
+                            updateBody['content'] = blob
 
-                    matchedQuerySet.update(**updateContent)
+                    matchedQuerySet.update(**updateBody)
+
                 response.write(json.dumps(dict(count=matchedQuerySet.count())))
                 
         except Exception, e:
-            print(e)
-            response.status_code = 500
+            print(e, 'here')
+            response.status_code = httpStatusCodes.INTERNAL_SERVER_ERROR
             response.status_message = str(e)
 
         finally:
@@ -95,8 +103,8 @@ def blobHandler(request):
     elif request.method == 'DELETE':
         response = HttpResponse()
         try:
-            queryContent = request.GET # TODO: Enforce param passing in through .read()
-            fromUnicodeConv = dict((str(k), str(v)) for k,v in queryContent.items())
+            queryBody = request.GET # TODO: Enforce param passing in through .read()
+            fromUnicodeConv = dict((str(k), str(v)) for k,v in queryBody.items())
             print('fromUC', fromUnicodeConv)
             matchedQuerySet = uploader.models.Blob.objects.filter(**fromUnicodeConv)
             print('matchedQuerySet', matchedQuerySet)
@@ -113,11 +121,13 @@ def blobHandler(request):
                         successful.append((item.id, item.title, item.size,))
 
                 matchedQuerySet.delete()
-                response.write(json.dumps(dict(count=count, successful=successful, failed=failed)))
+                response.write(
+                    json.dumps(dict(count=count, successful=successful, failed=failed))
+                )
 
         except Exception, e:
             print('e', e)
-            response.status_code = 500
+            response.status_code = httpStatusCodes.INTERNAL_SERVER_ERROR
             response.status_message = str(e)
 
         return response

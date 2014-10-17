@@ -49,11 +49,12 @@ sortKeyCompile = re.compile(
     r"([^\s]*)\s*%s$"%(globVars.REVERSE_KEY), re.UNICODE|re.IGNORECASE
 )
 
-byteFyArgs = {}
-pyVersion = sys.hexversion//(1<<24)
+pyVersion = sys.version_info.major
 
 if pyVersion >= 3:
-    byteFyArgs = {'encoding': 'utf-8'}
+  byteFyArgs = {'encoding': 'utf-8'}
+else:
+  byteFyArgs = {}
 
 byteFy = lambda byteableObj: bytes(byteableObj, **byteFyArgs)
 
@@ -75,9 +76,8 @@ def _altParseRequestBody(request, methodName):
   reqBody = getattr(request, methodName, None)
   if reqBody is None:
     try:
-      reqBody = json.loads(
-        request.read() if pyVersion < 3 else request.read().decode()
-      )
+      data = request.read() if pyVersion < 3 else request.read().decode()
+      reqBody = json.loads(data)
     except Exception, e:
       print(e)
       return httpStatusCodes.INTERNAL_SERVER_ERROR, e
@@ -112,8 +112,10 @@ def captureOnlyAllowedAttrs(objEditableAttrs, mapUnderInspection):
 
   mappedValues = tuple()
   for key in objEditableAttrs:
-    if key in mapUnderInspection: # Remember that queryContent is a dict so usually a O(1) op
-      mappedValues += ((key, mapUnderInspection[key],),)
+    retrV = mapUnderInspection.get(key, None)
+    if retrV is not None:
+      # print(mapUnderInspection, key)
+      mappedValues += ((key, retrV,),)
 
   return mappedValues
 
@@ -312,11 +314,14 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
       return errorID, changeCount, duplicatesCount
 
     else:
-      allowedFilters = captureOnlyAllowedAttrsFromObj(tableObj.objects.first(), queryParams)
+      allowedFilters = captureOnlyAllowedAttrsFromObj(
+                                tableObj.objects.first(), queryParams)
+
       objMatch = tableObj.objects.filter(*allowedFilters)
 
       if not objMatch:
-        print('Error: Could not find items that match query params', queryParams)
+        print(
+           'Error: Could not find items that match query params', queryParams)
         return errorID, changeCount, duplicatesCount
       else:
         allowedKeys = getAllowedFilters(objMatch[0])
@@ -491,7 +496,7 @@ def getCurrentTime():
 ################################# CRUD handlers below ################################
 def handlePUT(putBody, tableProtoType):
   results = updateTable(
-        tableProtoType, bodyFromRequest=putBody, updateBool=True
+      tableProtoType, bodyFromRequest=putBody, updateBool=True
   )
 
   if results:
@@ -632,4 +637,4 @@ def handlePOST(postBody, tableProtoType):
   return statusCode, resultsDict
 
 def handleDELETE(deleteBody, tableProtoType):
-  return httpStatusCode.OK, dict(data=deleteByAttrs(tableProtoType, deleteBody))
+  return httpStatusCodes.OK, dict(data=deleteByAttrs(tableProtoType, deleteBody))
