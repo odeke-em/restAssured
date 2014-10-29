@@ -74,10 +74,14 @@ def translateSortKey(sortKey):
  
 def _altParseRequestBody(request, methodName):
   reqBody = getattr(request, methodName, None)
+
   if reqBody is None:
     try:
       data = request.read() if pyVersion < 3 else request.read().decode()
-      reqBody = json.loads(data)
+      if not data:
+        reqBody = request.GET
+      else:
+        reqBody = json.loads(data)
     except Exception, e:
       print(e)
       return httpStatusCodes.INTERNAL_SERVER_ERROR, e
@@ -436,6 +440,7 @@ def handleHTTPRequest(request, tableName, models):
   statusCode = httpStatusCodes.BAD_REQUEST
 
   parseStatus, content = _altParseRequestBody(request, requestMethod)
+
   if parseStatus != httpStatusCodes.OK:
     statusCode = httpStatusCodes.BAD_REQUEST  
     resultsDict = {'msg': 'No body could be parsed'}
