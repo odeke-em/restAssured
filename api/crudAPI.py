@@ -73,7 +73,21 @@ def translateSortKey(sortKey):
     return sortKey, False
  
 def _altParseRequestBody(request, methodName):
-  reqBody = getattr(request, methodName, None)
+
+  if methodName != globVars.PUT_KEY:
+    reqBody = getattr(request, methodName, None)
+  else:
+    reqBody = request.GET
+    qParams = reqBody.get('queryParams', '{}')
+    uBody = reqBody.get('updateParams', '{}')
+    try:
+      updateParams = json.loads(uBody)
+      queryParams = json.loads(qParams)
+    except Exception, e:
+      print('PUT EXCEPTION', e)
+      reqBody = None
+    else:
+      reqBody = dict(queryParams=queryParams, updateParams=updateParams)
 
   if reqBody is None:
     try:
@@ -118,7 +132,6 @@ def captureOnlyAllowedAttrs(objEditableAttrs, mapUnderInspection):
   for key in objEditableAttrs:
     retrV = mapUnderInspection.get(key, None)
     if retrV is not None:
-      # print(mapUnderInspection, key)
       mappedValues += ((key, retrV,),)
 
   return mappedValues
@@ -207,7 +220,6 @@ def getForeignKeyElems(pyObj, parentMap={}, models=None):
   if pyObj.__hash__:
     hashOfObj = hash(pyObj)
     if hashOfObj in parentMap:
-        # print('\033[47mAlready memoized %d\033[00m'%(pyObj.id))
         return None
 
     # Memoize it now
@@ -289,10 +301,13 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
   # This is to handle the CREATE and UPDATE methods of CRUD
   # Args:
   #  tableObj => ProtoType of the table to be updated
-  #  updatesBody => A dict containing the fields to be changed in the table
+  #  bodyFromRequest => {
+  #    updateParams => A dict containing the fields to be changed in the table,
+  #    queryParams => A dict containing the tables to query
+  #  }
   #  updateBool  => Set to False, means that you are creating an entry,
   #                 True, means an update 
-  #  Note:  If updateBool is set, you MUST provide an 'id' in 'updatesBody'
+  #  Note:  If updateBool is set, you MUST provide an 'id' in 'updateParams'
   if not (tableObj and bodyFromRequest): 
     return None # Handle this mishap later
 
@@ -305,7 +320,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
   allowedKeys = None
   if not updateBool:
     objectToChange = tableObj()
-    updatesBody = bodyFromRequest
+    updateParams = bodyFromRequest
     allowedKeys = getAllowedFilters(objectToChange)
 
   else:
@@ -334,12 +349,12 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
         else:
             objectToChange = objMatch
 
-        updatesBody = bodyFromRequest.get('updatesBody', None)
-        if updatesBody is None:
-          updatesBody = {}
+        updateParams = bodyFromRequest.get('updateParams', None)
+        if updateParams is None:
+          updateParams = {}
 
   cherryPickedAttrs = dict(
-    (str(k), updatesBody[k]) for k in updatesBody if isMutableAttr(k) and k in allowedKeys
+    (str(k), updateParams[k]) for k in updateParams if isMutableAttr(k) and k in allowedKeys
   )
 
   if isCallableAttr(objectToChange, 'update'):
@@ -350,7 +365,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
     for attr in cherryPickedAttrs:
        attr = str(attr) # To handle the initial unicode form eg u'key' yet desired is 'key'
 
-       attrValue = updatesBody.get(attr)
+       attrValue = updateParams.get(attr)
        if updateBool: 
           origValue = getattr(objectToChange, attr, None)
           if (attrValue == origValue): 
