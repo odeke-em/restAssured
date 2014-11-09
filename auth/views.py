@@ -9,7 +9,9 @@ import django.contrib.auth as djangoAuth
 
 from django.core.context_processors import csrf
 from django.shortcuts import render_to_response
-from django.views.decorators.csrf import csrf_exempt, csrf_protect, ensure_csrf_cookie
+from django.views.decorators.csrf import (
+        csrf_exempt, csrf_protect, ensure_csrf_cookie
+)
 
 # Setting up path for API source
 import sys
@@ -70,7 +72,7 @@ def newUser(request):
     if notMethodCheckResponse:
         return notMethodCheckResponse
 
-    status, reqBody = crudAPI._altParseRequestBody(request, 'POST')
+    status, reqBody = crudAPI._altParseRequestBody(request, 'POST', True)
     if status != httpStatusCodes.OK:
         resp = HttpResponse()
         resp.status_code = httpStatusCodes.BAD_REQUEST

@@ -72,7 +72,22 @@ def translateSortKey(sortKey):
   else:
     return sortKey, False
  
-def _altParseRequestBody(request, methodName):
+def attemptJSONParse(strContent):
+  outCode = httpStatusCodes.BAD_REQUEST
+  deserial = None
+  try:
+    deserial = json.loads(strContent)
+  except Exception as e:
+    deserial = e
+    outCode = httpStatusCodes.INTERNAL_SERVER_ERROR
+  else:
+    outCode = httpStatusCodes.OK
+  finally:
+    return outCode, deserial
+
+def _altParseRequestBody(request, methodName, mustHaveContent=False):
+  if not mustHaveContent:
+    mustHaveContent = methodName == globVars.POST_KEY
 
   if methodName != globVars.PUT_KEY:
     reqBody = getattr(request, methodName, None)
@@ -89,16 +104,17 @@ def _altParseRequestBody(request, methodName):
     else:
       reqBody = dict(queryParams=queryParams, updateParams=updateParams)
 
-  if reqBody is None:
-    try:
-      data = request.read() if pyVersion < 3 else request.read().decode()
-      if not data:
-        reqBody = request.GET
-      else:
-        reqBody = json.loads(data)
-    except Exception, e:
-      print(e)
-      return httpStatusCodes.INTERNAL_SERVER_ERROR, e
+  if not reqBody:
+      if reqBody is None or mustHaveContent:
+        data = request.read() if pyVersion < 3 else request.read().decode()
+        if not data: # Last resort
+          reqBody = request.GET
+        else:
+          status, deserialized = attemptJSONParse(data)
+          if status == httpStatusCodes.OK:
+            reqBody = deserialized
+          else:
+            return status, deserialized
 
   return httpStatusCodes.OK, reqBody
  
@@ -396,11 +412,13 @@ def deleteByAttrs(objProtoType, attrDict):
   if not objProtoType:
     msg = "No such table"
     print(msg, "Unknown table ", objProtoType)
-    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
+    return dict(
+        successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
   elif not isinstance(attrDict, dict):
     msg = 'parameter \'attrDict\' must be an instance of a dict'
     print(msg)
-    return dict(successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
+    return dict(
+        successful=[], failed=[], id=globVars.DELETION_FAILURE_CODE, msg=msg)
 
   else: 
     tupledIdentifiers = tuple(attrDict.items()) 

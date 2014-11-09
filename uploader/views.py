@@ -7,7 +7,7 @@
 
 from django.template import RequestContext
 from django.shortcuts import render_to_response
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 
 # Setting up path for API source
@@ -24,6 +24,7 @@ from uploader.forms import DocumentForm
 
 # CSRF exemption only for development purposes
 @csrf_exempt
+@ensure_csrf_cookie
 def index(request):
     return blobHandler(request)
 
@@ -62,6 +63,7 @@ def blobHandler(request):
         response = HttpResponse()
         try:
             queryBody = request.GET
+            print('queryBody', queryBody)
             updateBody = request.POST
 
             if not queryBody:
