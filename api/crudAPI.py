@@ -137,10 +137,10 @@ def getTablesInModels(models):
 
   return tableNameToTypeDict
 
-def captureOnlyAllowedAttrsFromObj(samplerObj, mapUnderInspection):
-  return captureOnlyAllowedAttrs(getAllowedFilters(samplerObj), mapUnderInspection)
+def captureUserMutableAttrsFromObj(samplerObj, mapUnderInspection):
+  return captureUserMutableAttrs(getUserMutableFilters(samplerObj), mapUnderInspection)
 
-def captureOnlyAllowedAttrs(objEditableAttrs, mapUnderInspection):
+def captureUserMutableAttrs(objEditableAttrs, mapUnderInspection):
   if not isCallableAttr(mapUnderInspection, '__getitem__'):
     raise Exception('Map under inspection must have __getitem__ or support [...] method')
 
@@ -289,18 +289,21 @@ def getConnectedElems(pyObj, alreadyVisited, models):
     objList = list()
     for connElem in connElems.all():
       serializDict = getSerializableElems(connElem)
-      if not serializDict: continue
+      if not serializDict:
+        continue
 
       if pyObj not in alreadyVisited:
         objHash = hash(pyObj) # No need to memoize the object, its hash will do
         alreadyVisited[objHash] = objHash
-        # print('Memoizing', pyObj.id)
 
       connConnElems = getForeignKeyElems(connElem, alreadyVisited, models) 
       refObjs = getConnectedElems(connElem, alreadyVisited, models)
 
-      mergeDicts(connConnElems, serializDict)
-      mergeDicts(refObjs, serializDict)
+      if refObjs:
+        serializDict.update(refObjs)
+
+      if connConnElems:
+        serializDict.update(connConnElems)
 
       objList.append(serializDict)
 
@@ -337,7 +340,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
   if not updateBool:
     objectToChange = tableObj()
     updateParams = bodyFromRequest
-    allowedKeys = getAllowedFilters(objectToChange)
+    allowedKeys = getUserMutableFilters(objectToChange)
 
   else:
     queryParams = bodyFromRequest.get('queryParams', None)
@@ -349,7 +352,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
       return errorID, changeCount, duplicatesCount
 
     else:
-      allowedFilters = captureOnlyAllowedAttrsFromObj(
+      allowedFilters = captureUserMutableAttrsFromObj(
                                 tableObj.objects.first(), queryParams)
 
       objMatch = tableObj.objects.filter(*allowedFilters)
@@ -359,7 +362,7 @@ def updateTable(tableObj, bodyFromRequest, updateBool=False):
            'Error: Could not find items that match query params', queryParams)
         return errorID, changeCount, duplicatesCount
       else:
-        allowedKeys = getAllowedFilters(objMatch[0])
+        allowedKeys = getUserMutableFilters(objMatch[0])
         if objMatch.count() == 1: # Just one item can be individually inspected
             objectToChange = objMatch[0]
         else:
@@ -504,7 +507,7 @@ def handleHTTPRequest(request, tableName, models):
 
   return response
 
-def getAllowedFilters(tableProtoType):
+def getUserMutableFilters(tableProtoType):
   if not tableProtoType:
     return None
   else:
@@ -512,15 +515,11 @@ def getAllowedFilters(tableProtoType):
 
     if userDefFields is None:
       objDict = tableProtoType.__dict__
-      userDefFields = tuple(attr for attr in objDict if not attr.startswith('_'))
+
+      userDefFields = tuple(attr for attr in objDict if isMutableAttr(attr))
       __TABLE_CACHE__[tableProtoType] = userDefFields
 
     return userDefFields
-
-def mergeDicts(src, dest):
-  if hasattr(src, 'items') and hasattr(dest, '__setitem__'):
-    for srcKey, srcValue in src.items():
-      dest[srcKey] = srcValue
 
 def addTypeInfo(outDict):
   if isinstance(outDict, dict):
@@ -554,14 +553,26 @@ def handleGET(getBody, tableObj, models=None):
   tableObjManager = tableObj.objects
   objCount = tableObjManager.count()
 
-  #================================ FILTRATION HERE ================================#
+  #========================= Population and Filtration here ========================#
   objProto = tableObj()
-  bodyAttrs = getAllowedFilters(objProto)
+  bodyAttrs = getUserMutableFilters(objProto)
 
   dbObjs = tableObjManager
   nFiltrations = 0
 
-  allowedFilters = captureOnlyAllowedAttrs(bodyAttrs, getBody)
+  allowedFilters = captureUserMutableAttrs(bodyAttrs, getBody)
+
+  # Finally we should also capture the id
+  if 'id' in getBody:
+    cId = None
+    rId = getBody['id']
+    if vFuncs.isUIntLike(rId):
+      cId = rId
+    elif type(rId) == 'list' and len(rId): # Query dicts trip out by providing u'id': [i]
+      cId = rId[0]
+
+    if cId is not None:
+      allowedFilters += (('id', int(cId)),)
 
   selectAttrs = getBody.get(globVars.SELECT_KEY, None)
   selectKeys = None
@@ -572,13 +583,16 @@ def handleGET(getBody, tableObj, models=None):
       splitKeys.append(globVars.ID_KEY) 
 
     # Then convert to a tuple to allow dereferencing/unravelling of elements
-    selectKeys = tuple([key for key in splitKeys if key in bodyAttrs])
+    selectKeys = tuple(key for key in splitKeys if key in bodyAttrs)
+
+    bodyAttrs = selectKeys
 
     # Populate only the requested attributes
     dbObjs = dbObjs.values(*selectKeys).all() if not allowedFilters\
-                else dbObjs.values(*selectKeys).filter(*allowedFilters)
+                        else dbObjs.values(*selectKeys).filter(*allowedFilters)
   else:
-    dbObjs = dbObjs.all() if not allowedFilters else dbObjs.filter(*allowedFilters)
+    dbObjs = dbObjs.filter(*allowedFilters)
+
   #=================================================================================#
  
   #========================== Pagination and OffSets here ==========================#
@@ -600,8 +614,10 @@ def handleGET(getBody, tableObj, models=None):
     offSet = int(offSet)
  
   maxSize = dbObjs.count()
-  if limit > maxSize: limit = maxSize 
-  elif limit: limit += offSet
+  if limit > maxSize:
+    limit = maxSize 
+  elif limit:
+    limit += offSet
 
   #=============================== SORTING HERE ===================================#
   sortKey = getBody.get(globVars.SORT_KEY, None)
@@ -632,19 +648,37 @@ def handleGET(getBody, tableObj, models=None):
   else:
     dbObjIterator = dbObjs.order_by(sortKey)[offSet:limit]
 
-  alreadyVisited = {}
+  foreignVisited = {}
+  connectedVisited = {}
+  idMap = {}
   for dbObj in dbObjIterator:
-    dbElemDict = getSerializableElems(dbObj)
-    foreignKeyElems = getForeignKeyElems(dbObj, alreadyVisited, models=models)
-    if foreignKeyElems:  mergeDicts(foreignKeyElems, dbElemDict)
+    connmap = {}
+    foreignKeyElems = getForeignKeyElems(dbObj, foreignVisited, models=models)
+    if foreignKeyElems:
+      connmap.update(foreignKeyElems)
     
     if connectedObjsBool: # A join requested
-      connElems = getConnectedElems(dbObj, alreadyVisited, models)
+      connElems = getConnectedElems(dbObj, connectedVisited, models)
       if connElems:
-        mergeDicts(connElems, dbElemDict)
+        connmap.update(connElems)
 
-    data.append(dbElemDict)
+    if hasattr(dbObj, 'id'):
+      itemId = dbObj.id
+    else:
+      itemId = dbObj.get('id', None)
+      if itemId is None:
+        continue
 
+    idMap[itemId] = connmap
+
+  qs = dbObjIterator.values('id', *bodyAttrs)
+  for item in qs:
+     itId = item.get('id', -1)
+     retrObj = idMap.get(itId, {})
+     if retrObj:
+       item.update(retrObj)
+
+  data = [getSerializableElems(qi) for qi in qs]
   metaDict = dict(
     collectionCount=objCount, count=len(data),
     format=formatKey,sort=sortKey, limit=limit, offset=offSet
