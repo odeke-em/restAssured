@@ -8,7 +8,6 @@ import re
 import sys
 import json
 import time
-import copy
 import inspect
 import datetime
 from django.http import HttpResponse
@@ -164,40 +163,22 @@ def getTableObjByKey(tableKeyName, models=None):
 def getSerializableElems(pyObj, salvageConverters=trivialSerialzdDict):
   # Returns the elements of an object that are json serializable
   if not pyObj:
-    return dict()
+    return {}
 
-  # First create a copy of the object's attributes 
-  getid = None
-  dictRepr = None
   if hasattr(pyObj, '__dict__'):
-    getid = lambda : pyObj.__getattribute__(globVars.ID_KEY)
     dictRepr = pyObj.__dict__
   else:
-    getid = lambda : pyObj.get(globVars.ID_KEY, None)
     dictRepr = pyObj
     
-  objDict = copy.copy(dictRepr)
+  objDict = {}
 
-  nonSerializbleElems = filter(
-    lambda attrValueTuple:not isSerializable(attrValueTuple[1]),\
-    objDict.items()
-  )
-
-  # Non-serializable elements whose converters can be found
-  salvagableElems = list()
-
-  for attr, value in nonSerializbleElems:
-    serialValue = passBasedOffFunc(value, salvageConverters)
-    if not serialValue:
-       objDict.pop(attr)
-    else:
-      salvagableElems.append((attr, serialValue))
-
-  for elem in salvagableElems:
-    key, value = elem[0], elem[1]
-    objDict[key] = value
-
-  objDict[globVars.ID_KEY] = getid()
+  for key, value in dictRepr.items():
+    if isSerializable(value):
+      objDict[key] = value
+    else: # Try for the non-serializable elements whose converters can be found
+      serializedValue = passBasedOffFunc(value, salvageConverters)
+      if serializedValue:
+         objDict[key] = serializedValue
 
   return objDict
 
@@ -628,8 +609,6 @@ def handleGET(getBody, tableObj, models=None):
   elif reverseTrue: 
      sortKey = "-%s"%(sortKey)
   
-  dbObjs = dbObjs.order_by(str(sortKey))
-
   #================================================================================#
 
   #============================== FORMAT HERE =====================================#
