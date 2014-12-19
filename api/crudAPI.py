@@ -273,9 +273,13 @@ def getConnectedElems(pyObj, alreadyVisited, models):
       if not serializDict:
         continue
 
-      if pyObj not in alreadyVisited:
-        objHash = hash(pyObj) # No need to memoize the object, its hash will do
-        alreadyVisited[objHash] = objHash
+      objHash = hash(pyObj)
+      if objHash in alreadyVisited:
+        # TODO: Show the cyclic dependency by
+        # passing back a serializable sentinel
+        continue
+
+      alreadyVisited[objHash] = objHash
 
       connConnElems = getForeignKeyElems(connElem, alreadyVisited, models) 
       refObjs = getConnectedElems(connElem, alreadyVisited, models)
