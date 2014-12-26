@@ -1,0 +1,3 @@
+[submodule "uploader/merkletree"]
+	path = uploader/merkletree
+	url = https://github.com/odeke-em/merkletree.git
