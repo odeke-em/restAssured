@@ -1,3 +1,4 @@
+# Copyright (c) 2014
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import sys

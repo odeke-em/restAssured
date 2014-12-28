@@ -20,7 +20,8 @@ import validatorFunctions as vFuncs
 DEVELOPER_MODE = True
 
 isCallable = lambda a: hasattr(a, '__call__')
-isCallableAttr = lambda obj,attr: hasattr(obj, attr) and isCallable(getattr(obj, attr))
+isCallableAttr = lambda obj, attr:\
+        hasattr(obj, attr) and isCallable(getattr(obj, attr))
 
 isImmutableAttr = lambda s: s.startswith('_') or s in onlyServerCanWrite
 isMutableAttr   = lambda s: not isImmutableAttr(s)
@@ -33,7 +34,7 @@ __TABLE_CACHE__ = dict()
 trivialSerialzdDict = {
   lambda e: e is None: lambda e: "null",
   lambda s: hasattr(s, globVars.NUMERICAL_DIV_ATTR): str,
-  lambda s: isinstance(s, datetime.date) : lambda s: str(s.strftime('%s'))
+  lambda s: isinstance(s, datetime.date) : lambda s: str(s.strftime('%s')),
 }
 
 tableDefinitions = dict()
