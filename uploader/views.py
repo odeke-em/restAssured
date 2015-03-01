@@ -28,6 +28,9 @@ from uploader.forms import DocumentForm
 def index(request):
     return blobHandler(request)
 
+def currentTime(request):
+    return crudAPI.currentTime(request)
+
 @csrf_exempt
 def blobHandler(request):
     if request.method == 'POST':

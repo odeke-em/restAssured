@@ -515,6 +515,11 @@ def addTypeInfo(outDict):
 def getCurrentTime():
   return time.time()
 
+def currentTime(request):
+    response = HttpResponse()
+    response.write(json.dumps(dict(time=getCurrentTime())))
+    return response
+
 ################################# CRUD handlers below ################################
 def handlePUT(putBody, tableProtoType):
   results = updateTable(
